@@ -474,9 +474,13 @@ class ReportGenerator:
 
         # Step 4: Filter and analyze stocks
         analyzed_stocks: list[AnalyzedStock] = []
+        skipped_invalid = 0
+        skipped_ath = 0
 
         for ticker, stock_data in stock_data_map.items():
             if not stock_data.is_valid:
+                skipped_invalid += 1
+                logger.debug(f"Skipping {ticker}: invalid data - {stock_data.error_message}")
                 continue
 
             # Check if meets our criteria
@@ -484,9 +488,12 @@ class ReportGenerator:
             mentions = reddit_data.get("total_mentions", 0)
             sentiment = reddit_data.get("avg_sentiment", 0.0)
 
-            # Must have dropped from ATH
-            if not stock_data.pct_from_ath or stock_data.pct_from_ath < settings.MIN_DROP_FROM_ATH * 100:
-                continue
+            # For now, include all stocks with valid data (relaxed filter)
+            # Value investors can filter by pct_from_ath in the UI
+            # Original filter: must be 15% below ATH
+            # if not stock_data.pct_from_ath or stock_data.pct_from_ath < settings.MIN_DROP_FROM_ATH * 100:
+            #     skipped_ath += 1
+            #     continue
 
             # Categorize sector
             sector_category = self._categorize_sector(stock_data.sector, stock_data.industry)
