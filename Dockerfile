@@ -8,14 +8,11 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
-COPY pyproject.toml .
+# Copy all application code first (needed for pyproject.toml to find README.md)
+COPY . .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir .
-
-# Copy application code
-COPY . .
 
 # Create non-root user
 RUN useradd -m appuser && chown -R appuser:appuser /app
