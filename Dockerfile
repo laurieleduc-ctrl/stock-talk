@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y \
 # Copy all application code first (needed for pyproject.toml to find README.md)
 COPY . .
 
+# Make start script executable
+RUN chmod +x start.sh
+
 # Install Python dependencies
 RUN pip install --no-cache-dir .
 
@@ -21,5 +24,5 @@ USER appuser
 # Expose port (Railway will set PORT env var)
 EXPOSE 8000
 
-# Run the application - explicitly use shell to expand $PORT
-CMD ["/bin/sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Run the application via start script
+CMD ["./start.sh"]
