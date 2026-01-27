@@ -439,34 +439,19 @@ class ReportGenerator:
         logger.info("Starting daily report generation...")
 
         # Step 1: Get stock mentions from available sources
-        # Priority: 1) Finnhub (social sentiment), 2) Reddit API, 3) Fallback list
+        # For now, use fallback list to ensure fast report generation
+        # TODO: Re-enable Finnhub/Reddit once we optimize API calls
         aggregated = {}
 
-        # Try Finnhub first (covers Reddit + Twitter sentiment)
-        if settings.FINNHUB_API_KEY:
-            logger.info("Fetching trending stocks from Finnhub...")
-            trending = finnhub_client.get_trending_stocks(limit=100)
-            if trending:
-                for stock in trending:
-                    aggregated[stock["ticker"]] = {
-                        "total_mentions": stock["total_mentions"],
-                        "avg_sentiment": stock["avg_sentiment"],
-                        "subreddits": {
-                            "reddit": {"count": stock["reddit_mentions"], "sentiment": stock["reddit_score"]},
-                            "twitter": {"count": stock["twitter_mentions"], "sentiment": stock["twitter_score"]},
-                        }
-                    }
-                logger.info(f"Found {len(aggregated)} trending stocks from Finnhub")
-
-        # Fall back to Reddit API if Finnhub didn't work
-        if not aggregated and settings.REDDIT_CLIENT_ID:
-            logger.info("Falling back to Reddit API...")
+        # Try Reddit API first if configured
+        if settings.REDDIT_CLIENT_ID:
+            logger.info("Fetching from Reddit API...")
             all_mentions = reddit_scraper.get_all_mentions()
             aggregated = reddit_scraper.aggregate_mentions(all_mentions)
 
-        # Fall back to curated list if nothing else works
+        # Fall back to curated list (fast, reliable)
         if not aggregated:
-            logger.warning("No API data available, using fallback stock list")
+            logger.info("Using curated stock list for analysis")
             aggregated = get_fallback_mentions()
 
         logger.info(f"Found {len(aggregated)} unique tickers to analyze")
@@ -477,10 +462,14 @@ class ReportGenerator:
             if data["total_mentions"] >= settings.MIN_REDDIT_MENTIONS
         ]
 
-        logger.info(f"{len(qualifying_tickers)} tickers meet minimum mention threshold")
+        # Limit to top 40 tickers to keep report generation fast
+        # (we'll select top 20 from these after analysis)
+        qualifying_tickers = qualifying_tickers[:40]
+
+        logger.info(f"Analyzing {len(qualifying_tickers)} tickers")
 
         # Step 3: Fetch stock data for qualifying tickers
-        logger.info("Fetching stock data...")
+        logger.info("Fetching stock data from Yahoo Finance...")
         stock_data_map = stock_fetcher.fetch_multiple(qualifying_tickers)
 
         # Step 4: Filter and analyze stocks
