@@ -15,6 +15,7 @@ from app.core.config import settings
 from app.models import DailyReport, ReportStock, Stock, StockMention, StockMetrics
 from app.services.reddit_scraper import reddit_scraper, StockMentionData, get_fallback_mentions
 from app.services.stock_fetcher import stock_fetcher, StockData
+from app.services.finnhub_client import finnhub_client
 
 logger = logging.getLogger(__name__)
 
@@ -437,13 +438,35 @@ class ReportGenerator:
         """
         logger.info("Starting daily report generation...")
 
-        # Step 1: Scrape Reddit for stock mentions (or use fallback)
-        logger.info("Scraping Reddit for stock mentions...")
-        all_mentions = reddit_scraper.get_all_mentions()
-        aggregated = reddit_scraper.aggregate_mentions(all_mentions)
+        # Step 1: Get stock mentions from available sources
+        # Priority: 1) Finnhub (social sentiment), 2) Reddit API, 3) Fallback list
+        aggregated = {}
 
+        # Try Finnhub first (covers Reddit + Twitter sentiment)
+        if settings.FINNHUB_API_KEY:
+            logger.info("Fetching trending stocks from Finnhub...")
+            trending = finnhub_client.get_trending_stocks(limit=100)
+            if trending:
+                for stock in trending:
+                    aggregated[stock["ticker"]] = {
+                        "total_mentions": stock["total_mentions"],
+                        "avg_sentiment": stock["avg_sentiment"],
+                        "subreddits": {
+                            "reddit": {"count": stock["reddit_mentions"], "sentiment": stock["reddit_score"]},
+                            "twitter": {"count": stock["twitter_mentions"], "sentiment": stock["twitter_score"]},
+                        }
+                    }
+                logger.info(f"Found {len(aggregated)} trending stocks from Finnhub")
+
+        # Fall back to Reddit API if Finnhub didn't work
+        if not aggregated and settings.REDDIT_CLIENT_ID:
+            logger.info("Falling back to Reddit API...")
+            all_mentions = reddit_scraper.get_all_mentions()
+            aggregated = reddit_scraper.aggregate_mentions(all_mentions)
+
+        # Fall back to curated list if nothing else works
         if not aggregated:
-            logger.warning("No Reddit data available, using fallback stock list")
+            logger.warning("No API data available, using fallback stock list")
             aggregated = get_fallback_mentions()
 
         logger.info(f"Found {len(aggregated)} unique tickers to analyze")

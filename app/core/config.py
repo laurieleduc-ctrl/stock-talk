@@ -11,10 +11,13 @@ class Settings:
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./stock_talk.db")
 
-    # Reddit API
+    # Reddit API (optional, fallback to Finnhub if not set)
     REDDIT_CLIENT_ID: str = os.getenv("REDDIT_CLIENT_ID", "")
     REDDIT_CLIENT_SECRET: str = os.getenv("REDDIT_CLIENT_SECRET", "")
     REDDIT_USER_AGENT: str = os.getenv("REDDIT_USER_AGENT", "StockTalk/1.0")
+
+    # Finnhub API (primary source for social sentiment)
+    FINNHUB_API_KEY: str = os.getenv("FINNHUB_API_KEY", "")
 
     # App Settings
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
