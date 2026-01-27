@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Stock Talk - Report History{% endblock %}
+
+{% block content %}
+<div x-data="historyData()" x-init="loadReports()">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-white">Report History</h1>
+        <p class="text-dark-400 mt-1">Browse past daily reports and track stock performance over time</p>
+    </div>
+
+    <!-- Loading state -->
+    <div x-show="loading" class="flex items-center justify-center py-20">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+    </div>
+
+    <!-- Reports list -->
+    <div x-show="!loading" class="space-y-4">
+        <template x-for="report in reports" :key="report.id">
+            <a
+                :href="'/report/' + report.id"
+                class="block bg-dark-900 rounded-lg p-6 border border-dark-800 hover:border-dark-700 transition-colors"
+            >
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h3 class="text-lg font-semibold text-white" x-text="formatDate(report.date)"></h3>
+                        <p class="text-dark-400 text-sm mt-1">
+                            <span x-text="report.stocks_in_report"></span> stocks selected from
+                            <span x-text="report.stocks_analyzed"></span> analyzed
+                        </p>
+                    </div>
+                    <div class="mt-4 md:mt-0">
+                        <span class="text-blue-400 text-sm">View Report →</span>
+                    </div>
+                </div>
+            </a>
+        </template>
+
+        <!-- Empty state -->
+        <div x-show="reports.length === 0" class="text-center py-20">
+            <div class="text-6xl mb-4">📊</div>
+            <h2 class="text-2xl font-bold text-white mb-2">No Reports Yet</h2>
+            <p class="text-dark-400">Reports are generated daily at 9pm Pacific</p>
+        </div>
+
+        <!-- Load more -->
+        <div x-show="hasMore" class="text-center pt-4">
+            <button
+                @click="loadMore()"
+                class="bg-dark-800 hover:bg-dark-700 text-white px-6 py-2 rounded-lg transition-colors"
+                :disabled="loadingMore"
+            >
+                <span x-show="!loadingMore">Load More</span>
+                <span x-show="loadingMore">Loading...</span>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function historyData() {
+    return {
+        reports: [],
+        loading: true,
+        loadingMore: false,
+        offset: 0,
+        limit: 20,
+        total: 0,
+
+        get hasMore() {
+            return this.offset + this.limit < this.total;
+        },
+
+        async loadReports() {
+            try {
+                const response = await fetch(`/api/reports?limit=${this.limit}&offset=${this.offset}`);
+                const data = await response.json();
+                this.reports = data.reports;
+                this.total = data.total;
+            } catch (e) {
+                console.error('Failed to load reports:', e);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async loadMore() {
+            this.loadingMore = true;
+            this.offset += this.limit;
+            try {
+                const response = await fetch(`/api/reports?limit=${this.limit}&offset=${this.offset}`);
+                const data = await response.json();
+                this.reports = [...this.reports, ...data.reports];
+            } catch (e) {
+                console.error('Failed to load more reports:', e);
+            } finally {
+                this.loadingMore = false;
+            }
+        },
+
+        formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+    }
+}
+</script>
+{% endblock %}

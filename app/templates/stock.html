@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Stock Talk - {{ ticker }}{% endblock %}
+
+{% block content %}
+<div x-data="stockData('{{ ticker }}')" x-init="loadStock()">
+    <!-- Loading state -->
+    <div x-show="loading" class="flex items-center justify-center py-20">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+    </div>
+
+    <!-- Error state -->
+    <div x-show="error && !loading" class="text-center py-20">
+        <div class="text-6xl mb-4">📊</div>
+        <h2 class="text-2xl font-bold text-white mb-2">Stock Not Found</h2>
+        <p class="text-dark-400" x-text="error"></p>
+        <a href="/" class="text-blue-400 hover:underline mt-4 inline-block">← Back to Today's Report</a>
+    </div>
+
+    <!-- Stock content -->
+    <div x-show="stock && !loading" x-cloak>
+        <!-- Header -->
+        <div class="mb-8">
+            <a href="/" class="text-dark-400 hover:text-white mb-4 inline-flex items-center">
+                ← Back
+            </a>
+            <div class="mt-4">
+                <h1 class="text-3xl font-bold text-white" x-text="stock?.ticker"></h1>
+                <p class="text-dark-400 mt-1" x-text="stock?.name"></p>
+                <p class="text-dark-500 text-sm mt-1">
+                    <span x-text="stock?.sector"></span> • <span x-text="stock?.industry"></span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-dark-900 rounded-lg p-4 border border-dark-800">
+                <div class="text-2xl font-bold text-white" x-text="stock?.appearances"></div>
+                <div class="text-sm text-dark-400">Times Featured</div>
+            </div>
+        </div>
+
+        <!-- History chart placeholder -->
+        <div class="bg-dark-900 rounded-lg p-6 border border-dark-800 mb-8">
+            <h2 class="text-lg font-semibold text-white mb-4">Report History</h2>
+            <canvas id="priceChart" height="100"></canvas>
+        </div>
+
+        <!-- Historical entries -->
+        <div class="space-y-4">
+            <h2 class="text-lg font-semibold text-white">Report Appearances</h2>
+            <template x-for="entry in stock?.history" :key="entry.report_date">
+                <div class="bg-dark-900 rounded-lg p-4 border border-dark-800">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-3">
+                        <div>
+                            <div class="font-semibold text-white" x-text="formatDate(entry.report_date)"></div>
+                            <div class="text-sm text-dark-500">
+                                Rank #<span x-text="entry.rank"></span>
+                                <span x-show="entry.is_dark_horse" class="ml-2">🐴 Dark Horse</span>
+                            </div>
+                        </div>
+                        <div class="mt-2 md:mt-0 flex items-center space-x-4">
+                            <div>
+                                <div class="text-lg font-bold text-white" x-text="'$' + entry.price?.toFixed(2)"></div>
+                                <div class="text-sm text-red-400" x-text="entry.pct_from_ath?.toFixed(1) + '% off ATH'"></div>
+                            </div>
+                            <span
+                                class="px-2 py-1 rounded text-xs font-medium"
+                                :class="{
+                                    'bg-green-900/50 text-green-400': entry.sentiment === 'Bullish',
+                                    'bg-red-900/50 text-red-400': entry.sentiment === 'Bearish',
+                                    'bg-dark-700 text-dark-300': entry.sentiment === 'Mixed'
+                                }"
+                                x-text="entry.sentiment"
+                            ></span>
+                        </div>
+                    </div>
+                    <div class="text-sm text-dark-300">
+                        <span class="text-dark-500">Analysis:</span>
+                        <span x-text="entry.buy_case"></span>
+                    </div>
+                    <div class="mt-2 text-sm text-dark-500">
+                        P/E: <span x-text="entry.pe_ratio?.toFixed(1) || 'N/A'"></span> •
+                        RSI: <span x-text="entry.rsi?.toFixed(0) || 'N/A'"></span> •
+                        Reddit Mentions: <span x-text="entry.reddit_mentions"></span>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Empty state -->
+            <div x-show="stock?.history?.length === 0" class="text-center py-10 text-dark-500">
+                No report history for this stock yet.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function stockData(ticker) {
+    return {
+        ticker: ticker,
+        stock: null,
+        loading: true,
+        error: null,
+        chart: null,
+
+        async loadStock() {
+            try {
+                const response = await fetch(`/api/stocks/${this.ticker}`);
+                if (!response.ok) {
+                    throw new Error('Stock not found');
+                }
+                this.stock = await response.json();
+                this.$nextTick(() => this.renderChart());
+            } catch (e) {
+                this.error = e.message;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        renderChart() {
+            if (!this.stock?.history?.length) return;
+
+            const ctx = document.getElementById('priceChart');
+            if (!ctx) return;
+
+            const data = this.stock.history.slice().reverse();
+
+            this.chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => {
+                        const date = new Date(d.report_date);
+                        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    }),
+                    datasets: [{
+                        label: 'Price',
+                        data: data.map(d => d.price),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        },
+
+        formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+    }
+}
+</script>
+{% endblock %}

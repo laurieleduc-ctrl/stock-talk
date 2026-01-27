@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}Stock Talk - Glossary{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-white">Investment Glossary</h1>
+        <p class="text-dark-400 mt-1">Plain-English explanations of the metrics used in Stock Talk</p>
+    </div>
+
+    <div class="space-y-6">
+        <!-- Valuation Metrics -->
+        <div class="bg-dark-900 rounded-lg border border-dark-800 overflow-hidden">
+            <div class="bg-dark-800 px-6 py-4">
+                <h2 class="text-lg font-semibold text-white">📊 Valuation Metrics</h2>
+                <p class="text-dark-400 text-sm">These help you understand if a stock is expensive or cheap relative to the company's value</p>
+            </div>
+            <div class="divide-y divide-dark-800">
+                <div class="p-6">
+                    <h3 class="font-semibold text-white">P/E Ratio (Price-to-Earnings)</h3>
+                    <p class="text-dark-300 mt-2">Shows how much you're paying for each dollar of the company's profit. If a stock has a P/E of 20, you're paying $20 for every $1 the company earns annually.</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <span class="px-2 py-1 bg-green-900/50 text-green-400 rounded text-xs">Low (&lt;15): Potentially undervalued</span>
+                        <span class="px-2 py-1 bg-yellow-900/50 text-yellow-400 rounded text-xs">Medium (15-25): Fair value</span>
+                        <span class="px-2 py-1 bg-red-900/50 text-red-400 rounded text-xs">High (&gt;30): Expensive or high growth expected</span>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <h3 class="font-semibold text-white">P/B Ratio (Price-to-Book)</h3>
+                    <p class="text-dark-300 mt-2">Compares the stock price to the company's "book value" (assets minus liabilities). A P/B under 1 means you could theoretically buy the company for less than its assets are worth.</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <span class="px-2 py-1 bg-green-900/50 text-green-400 rounded text-xs">&lt;1: Trading below asset value</span>
+                        <span class="px-2 py-1 bg-dark-700 text-dark-300 rounded text-xs">1-3: Typical range</span>
+                        <span class="px-2 py-1 bg-yellow-900/50 text-yellow-400 rounded text-xs">&gt;3: Premium (common in tech)</span>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <h3 class="font-semibold text-white">PEG Ratio (Price/Earnings to Growth)</h3>
+                    <p class="text-dark-300 mt-2">Adjusts the P/E ratio for the company's growth rate. A high P/E might be justified if the company is growing fast. PEG under 1 suggests you're getting growth at a discount.</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <span class="px-2 py-1 bg-green-900/50 text-green-400 rounded text-xs">&lt;1: Growth at a discount</span>
+                        <span class="px-2 py-1 bg-dark-700 text-dark-300 rounded text-xs">1: Fairly valued for growth</span>
+                        <span class="px-2 py-1 bg-red-900/50 text-red-400 rounded text-xs">&gt;2: Expensive relative to growth</span>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <h3 class="font-semibold text-white">All-Time High (ATH) & % Off ATH</h3>
+                    <p class="text-dark-300 mt-2">The highest price the stock has ever reached. "% off ATH" shows how far the current price is below that peak. A stock 40% off ATH is trading at 60% of its highest price.</p>
+                    <p class="text-dark-500 text-sm mt-2">💡 Being far off ATH can signal a value opportunity—or a company in decline. Context matters!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Health -->
+        <div class="bg-dark-900 rounded-lg border border-dark-800 overflow-hidden">
+            <div class="bg-dark-800 px-6 py-4">
+                <h2 class="text-lg font-semibold text-white">💰 Financial Health</h2>
+                <p class="text-dark-400 text-sm">These metrics show how financially stable and profitable a company is</p>
+            </div>
+            <div class="divide-y divide-dark-800">
+                <div class="p-6">
+                    <h3 class="font-semibold text-white">Debt-to-Equity Ratio</h3>
+                    <p class="text-dark-300 mt-2">Shows how much debt the company has relative to shareholder equity. A ratio of 0.5 means for every $1 shareholders have invested, the company owes $0.50 in debt.</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <span class="px-2 py-1 bg-green-900/50 text-green-400 rounded text-xs">&lt;0.5: Low debt, conservative</span>
+                        <span class="px-2 py-1 bg-yellow-900/50 text-yellow-400 rounded text-xs">0.5-1.5: Moderate debt</span>
+                        <span class="px-2 py-1 bg-red-900/50 text-red-400 rounded text-xs">&gt;1.5: High debt, higher risk</span>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <h3 class="font-semibold text-white">Free Cash Flow (FCF)</h3>
+                    <p class="text-dark-300 mt-2">The actual cash a company generates after paying all its operating expenses and capital investments. This is the real money available for dividends, buybacks, or growth.</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <span class="px-2 py-1 bg-green-900/50 text-green-400 rounded text-xs">Positive: Company generates cash</span>
+                        <span class="px-2 py-1 bg-red-900/50 text-red-400 rounded text-xs">Negative: Burning cash</span>
+                    </div>
+                    <p class="text-dark-500 text-sm mt-2">💡 FCF is harder to manipulate than earnings, making it a more reliable indicator.</p>
+                </div>
+
+                <div class="p-6">
+                    <h3 class="font-semibold text-white">Profit Margin</h3>
+                    <p class="text-dark-300 mt-2">The percentage of revenue that becomes profit. A 20% profit margin means the company keeps $0.20 from every dollar of sales after all expenses.</p>
+                    <p class="text-dark-500 text-sm mt-2">💡 Compare margins within the same industry—tech companies typically have higher margins than retailers.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Indicators -->
+        <div class="bg-dark-900 rounded-lg border border-dark-800 overflow-hidden">
+            <div class="bg-dark-800 px-6 py-4">
+                <h2 class="text-lg font-semibold text-white">📈 Technical Indicators</h2>
+                <p class="text-dark-400 text-sm">These measure price momentum and volatility</p>
+            </div>
+            <div class="divide-y divide-dark-800">
+                <div class="p-6">
+                    <h3 class="font-semibold text-white">RSI (Relative Strength Index)</h3>
+                    <p class="text-dark-300 mt-2">Measures how fast and how much a stock's price has changed recently, on a scale of 0-100. It helps identify if a stock might be overbought (due for a pullback) or oversold (due for a bounce).</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <span class="px-2 py-1 bg-green-900/50 text-green-400 rounded text-xs">&lt;30: Oversold (potential buy signal)</span>
+                        <span class="px-2 py-1 bg-dark-700 text-dark-300 rounded text-xs">30-70: Neutral zone</span>
+                        <span class="px-2 py-1 bg-red-900/50 text-red-400 rounded text-xs">&gt;70: Overbought (potential sell signal)</span>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <h3 class="font-semibold text-white">Beta</h3>
+                    <p class="text-dark-300 mt-2">Measures how volatile a stock is compared to the overall market. A beta of 1 means it moves with the market. Higher beta = bigger swings, both up and down.</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <span class="px-2 py-1 bg-green-900/50 text-green-400 rounded text-xs">&lt;1: Less volatile than market</span>
+                        <span class="px-2 py-1 bg-dark-700 text-dark-300 rounded text-xs">1: Moves with market</span>
+                        <span class="px-2 py-1 bg-yellow-900/50 text-yellow-400 rounded text-xs">&gt;1.5: More volatile</span>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <h3 class="font-semibold text-white">52-Week Range</h3>
+                    <p class="text-dark-300 mt-2">The lowest and highest prices the stock has traded at over the past year. Seeing where the current price sits in this range gives context for whether it's near recent highs or lows.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ownership & Sentiment -->
+        <div class="bg-dark-900 rounded-lg border border-dark-800 overflow-hidden">
+            <div class="bg-dark-800 px-6 py-4">
+                <h2 class="text-lg font-semibold text-white">👥 Ownership & Sentiment</h2>
+                <p class="text-dark-400 text-sm">Who owns the stock and what they're doing with it</p>
+            </div>
+            <div class="divide-y divide-dark-800">
+                <div class="p-6">
+                    <h3 class="font-semibold text-white">Short Interest</h3>
+                    <p class="text-dark-300 mt-2">The percentage of shares that have been "sold short"—borrowed and sold by investors betting the price will fall. High short interest means many people expect the stock to drop.</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <span class="px-2 py-1 bg-green-900/50 text-green-400 rounded text-xs">&lt;5%: Low (few betting against)</span>
+                        <span class="px-2 py-1 bg-yellow-900/50 text-yellow-400 rounded text-xs">5-15%: Moderate</span>
+                        <span class="px-2 py-1 bg-red-900/50 text-red-400 rounded text-xs">&gt;20%: High (short squeeze potential)</span>
+                    </div>
+                    <p class="text-dark-500 text-sm mt-2">💡 Very high short interest can lead to a "short squeeze" if the stock rises and shorts are forced to buy to cover losses.</p>
+                </div>
+
+                <div class="p-6">
+                    <h3 class="font-semibold text-white">Institutional Ownership</h3>
+                    <p class="text-dark-300 mt-2">The percentage of shares owned by big investors like mutual funds, pension funds, and hedge funds. High institutional ownership means professional investors believe in the company.</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <span class="px-2 py-1 bg-yellow-900/50 text-yellow-400 rounded text-xs">&lt;30%: Under-discovered</span>
+                        <span class="px-2 py-1 bg-green-900/50 text-green-400 rounded text-xs">30-70%: Sweet spot</span>
+                        <span class="px-2 py-1 bg-dark-700 text-dark-300 rounded text-xs">&gt;70%: Crowded trade</span>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <h3 class="font-semibold text-white">Insider Activity</h3>
+                    <p class="text-dark-300 mt-2">When company executives buy or sell their own stock. Insider buying is often bullish—they know the company best and are putting their own money on the line.</p>
+                    <p class="text-dark-500 text-sm mt-2">💡 Insider selling is less meaningful—executives might sell for personal reasons (taxes, diversification). But insider buying is almost always intentional.</p>
+                </div>
+
+                <div class="p-6">
+                    <h3 class="font-semibold text-white">Reddit Sentiment</h3>
+                    <p class="text-dark-300 mt-2">We analyze posts on r/stocks and r/wallstreetbets to gauge community sentiment. "Bullish" means more positive discussion, "Bearish" means negative, and "Mixed" is neutral.</p>
+                    <p class="text-dark-500 text-sm mt-2">💡 Reddit sentiment can be a leading indicator but can also signal crowded trades. Use it as one data point among many.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dividends -->
+        <div class="bg-dark-900 rounded-lg border border-dark-800 overflow-hidden">
+            <div class="bg-dark-800 px-6 py-4">
+                <h2 class="text-lg font-semibold text-white">💵 Dividends</h2>
+                <p class="text-dark-400 text-sm">Cash payments companies make to shareholders</p>
+            </div>
+            <div class="p-6">
+                <h3 class="font-semibold text-white">Dividend Yield</h3>
+                <p class="text-dark-300 mt-2">The annual dividend payment as a percentage of the stock price. A 3% yield means you receive $3 per year for every $100 invested.</p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <span class="px-2 py-1 bg-dark-700 text-dark-300 rounded text-xs">0-2%: Low or no dividend</span>
+                    <span class="px-2 py-1 bg-green-900/50 text-green-400 rounded text-xs">2-4%: Healthy yield</span>
+                    <span class="px-2 py-1 bg-yellow-900/50 text-yellow-400 rounded text-xs">&gt;5%: High (check if sustainable)</span>
+                </div>
+                <p class="text-dark-500 text-sm mt-2">💡 Very high yields can be a trap—if a stock drops 50%, its yield doubles, but that reflects distress, not generosity.</p>
+            </div>
+        </div>
+
+        <!-- Analyst Data -->
+        <div class="bg-dark-900 rounded-lg border border-dark-800 overflow-hidden">
+            <div class="bg-dark-800 px-6 py-4">
+                <h2 class="text-lg font-semibold text-white">🎯 Analyst Data</h2>
+                <p class="text-dark-400 text-sm">Professional research analyst opinions</p>
+            </div>
+            <div class="divide-y divide-dark-800">
+                <div class="p-6">
+                    <h3 class="font-semibold text-white">Analyst Rating</h3>
+                    <p class="text-dark-300 mt-2">The consensus recommendation from Wall Street analysts. Usually shown as Strong Buy, Buy, Hold, Sell, or Strong Sell.</p>
+                    <p class="text-dark-500 text-sm mt-2">💡 Analysts tend to be optimistic—"Hold" often means "we're not impressed." Very few stocks get actual Sell ratings.</p>
+                </div>
+
+                <div class="p-6">
+                    <h3 class="font-semibold text-white">Price Target</h3>
+                    <p class="text-dark-300 mt-2">Where analysts think the stock price will be in 12 months. The "upside" percentage shows how much the stock would need to rise to reach the average target.</p>
+                    <p class="text-dark-500 text-sm mt-2">💡 Price targets are educated guesses—they're often wrong but useful for understanding professional expectations.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

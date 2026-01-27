@@ -1,0 +1,138 @@
+/* Stock Talk Custom Styles */
+
+/* Hide elements until Alpine.js initializes */
+[x-cloak] {
+    display: none !important;
+}
+
+/* Navigation */
+.nav-link {
+    @apply px-3 py-2 rounded-md text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800 transition-colors;
+}
+
+.nav-link.active {
+    @apply text-white bg-gray-800;
+}
+
+/* Stock cards */
+.stock-card {
+    @apply bg-gray-900 rounded-lg p-6 border border-gray-800;
+}
+
+.stock-card.dark-horse {
+    @apply border-purple-800/50 bg-gradient-to-br from-gray-900 to-purple-900/20;
+}
+
+/* Metric boxes */
+.metric-box {
+    @apply bg-gray-800/50 rounded-lg p-3;
+}
+
+.metric-label {
+    @apply text-xs text-gray-500 uppercase tracking-wide;
+}
+
+.metric-value {
+    @apply text-lg font-bold text-white mt-1;
+}
+
+.metric-help {
+    @apply text-xs text-gray-600 mt-1;
+}
+
+/* Signal indicators */
+.signal-bullish {
+    @apply text-green-400;
+}
+
+.signal-bearish {
+    @apply text-red-400;
+}
+
+.signal-neutral {
+    @apply text-gray-400;
+}
+
+/* Table styles */
+table {
+    @apply w-full;
+}
+
+th {
+    @apply text-left font-medium;
+}
+
+td, th {
+    @apply px-4 py-3;
+}
+
+tbody tr {
+    @apply border-b border-gray-800;
+}
+
+tbody tr:hover {
+    @apply bg-gray-900;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    @apply bg-gray-900;
+}
+
+::-webkit-scrollbar-thumb {
+    @apply bg-gray-700 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-600;
+}
+
+/* Animation */
+@keyframes pulse-slow {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.animate-pulse-slow {
+    animation: pulse-slow 3s ease-in-out infinite;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 640px) {
+    .metric-box {
+        @apply p-2;
+    }
+
+    .metric-label {
+        @apply text-[10px];
+    }
+
+    .metric-value {
+        @apply text-base;
+    }
+
+    .metric-help {
+        @apply hidden;
+    }
+}
+
+/* Print styles */
+@media print {
+    nav, footer {
+        display: none !important;
+    }
+
+    .stock-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+}

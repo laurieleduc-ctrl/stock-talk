@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+
+{% block title %}Stock Talk - Today's Value Picks{% endblock %}
+
+{% block content %}
+<div x-data="reportData()" x-init="loadLatestReport()">
+    <!-- Loading state -->
+    <div x-show="loading" class="flex items-center justify-center py-20">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+    </div>
+
+    <!-- Error state -->
+    <div x-show="error && !loading" class="text-center py-20">
+        <div class="text-6xl mb-4">📊</div>
+        <h2 class="text-2xl font-bold text-white mb-2">No Report Available</h2>
+        <p class="text-dark-400" x-text="error"></p>
+    </div>
+
+    <!-- Report content -->
+    <div x-show="report && !loading" x-cloak>
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-white">Today's Value Picks</h1>
+                    <p class="text-dark-400 mt-1">
+                        <span x-text="formatDate(report?.date)"></span>
+                        • <span x-text="report?.stocks?.length"></span> stocks selected from
+                        <span x-text="report?.stocks_analyzed"></span> analyzed
+                    </p>
+                </div>
+                <div class="mt-4 md:mt-0 flex space-x-2">
+                    <button
+                        @click="viewMode = 'cards'"
+                        :class="viewMode === 'cards' ? 'bg-blue-600' : 'bg-dark-800'"
+                        class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                        Cards
+                    </button>
+                    <button
+                        @click="viewMode = 'table'"
+                        :class="viewMode === 'table' ? 'bg-blue-600' : 'bg-dark-800'"
+                        class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                        Table
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sector breakdown -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+            <template x-for="(count, sector) in report?.sector_breakdown" :key="sector">
+                <div class="bg-dark-900 rounded-lg p-4 border border-dark-800">
+                    <div class="text-2xl font-bold text-white" x-text="count"></div>
+                    <div class="text-sm text-dark-400 capitalize" x-text="sector === 'ai' ? 'AI' : sector"></div>
+                </div>
+            </template>
+        </div>
+
+        <!-- Tip of the day -->
+        <div x-show="report?.tip_of_the_day" class="bg-gradient-to-r from-blue-900/50 to-purple-900/50 rounded-lg p-6 mb-8 border border-blue-800/50">
+            <div class="flex items-start space-x-4">
+                <div class="text-3xl">💡</div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white" x-text="report?.tip_of_the_day?.title"></h3>
+                    <p class="text-dark-300 mt-2" x-text="report?.tip_of_the_day?.content"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison table view -->
+        <div x-show="viewMode === 'table'" class="overflow-x-auto mb-8">
+            <table class="w-full text-sm">
+                <thead class="bg-dark-900 text-dark-400">
+                    <tr>
+                        <th class="px-4 py-3 text-left">#</th>
+                        <th class="px-4 py-3 text-left">Stock</th>
+                        <th class="px-4 py-3 text-right">Price</th>
+                        <th class="px-4 py-3 text-right">% Off ATH</th>
+                        <th class="px-4 py-3 text-right">P/E</th>
+                        <th class="px-4 py-3 text-right">RSI</th>
+                        <th class="px-4 py-3 text-right">1Y Return</th>
+                        <th class="px-4 py-3 text-center">Sentiment</th>
+                        <th class="px-4 py-3 text-center">Signals</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-dark-800">
+                    <template x-for="stock in report?.stocks" :key="stock.ticker">
+                        <tr
+                            class="hover:bg-dark-900 cursor-pointer"
+                            :class="stock.is_dark_horse ? 'bg-purple-900/20' : ''"
+                            @click="window.location.href = '/stock/' + stock.ticker"
+                        >
+                            <td class="px-4 py-3">
+                                <span x-text="stock.rank"></span>
+                                <span x-show="stock.is_dark_horse" class="ml-1">🐴</span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="font-semibold text-white" x-text="stock.ticker"></div>
+                                <div class="text-dark-500 text-xs truncate max-w-[150px]" x-text="stock.name"></div>
+                            </td>
+                            <td class="px-4 py-3 text-right font-mono" x-text="'$' + stock.price?.toFixed(2)"></td>
+                            <td class="px-4 py-3 text-right">
+                                <span class="text-red-400" x-text="'-' + stock.pct_from_ath?.toFixed(1) + '%'"></span>
+                            </td>
+                            <td class="px-4 py-3 text-right" x-text="stock.pe_ratio?.toFixed(1) || 'N/A'"></td>
+                            <td class="px-4 py-3 text-right">
+                                <span :class="stock.rsi < 30 ? 'text-green-400' : (stock.rsi > 70 ? 'text-red-400' : '')" x-text="stock.rsi?.toFixed(0) || 'N/A'"></span>
+                            </td>
+                            <td class="px-4 py-3 text-right">
+                                <span :class="stock.one_year_return > 0 ? 'text-green-400' : 'text-red-400'" x-text="(stock.one_year_return > 0 ? '+' : '') + stock.one_year_return?.toFixed(1) + '%'"></span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <span
+                                    class="px-2 py-1 rounded text-xs font-medium"
+                                    :class="{
+                                        'bg-green-900/50 text-green-400': stock.sentiment_label === 'Bullish',
+                                        'bg-red-900/50 text-red-400': stock.sentiment_label === 'Bearish',
+                                        'bg-dark-700 text-dark-300': stock.sentiment_label === 'Mixed'
+                                    }"
+                                    x-text="stock.sentiment_label"
+                                ></span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="text-green-400" x-text="stock.bullish_signals"></span>
+                                <span class="text-dark-600">/</span>
+                                <span class="text-red-400" x-text="stock.bearish_signals"></span>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Cards view -->
+        <div x-show="viewMode === 'cards'" class="space-y-6">
+            <template x-for="stock in report?.stocks" :key="stock.ticker">
+                <div
+                    class="stock-card"
+                    :class="stock.is_dark_horse ? 'dark-horse' : ''"
+                >
+                    <!-- Card header -->
+                    <div class="flex items-start justify-between mb-4">
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm text-dark-500" x-text="'#' + stock.rank"></span>
+                                <span x-show="stock.is_dark_horse" class="text-sm">🐴 Dark Horse</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-white mt-1">
+                                <a :href="'/stock/' + stock.ticker" class="hover:text-blue-400" x-text="stock.ticker"></a>
+                                <span class="text-dark-400 font-normal text-base ml-2" x-text="stock.name"></span>
+                            </h3>
+                            <div class="text-sm text-dark-500 mt-1">
+                                <span x-text="stock.sector"></span> •
+                                <span class="capitalize" x-text="stock.sector_category === 'ai' ? 'AI' : stock.sector_category"></span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-white" x-text="'$' + stock.price?.toFixed(2)"></div>
+                            <div class="text-red-400 font-medium" x-text="stock.pct_from_ath?.toFixed(1) + '% off ATH'"></div>
+                        </div>
+                    </div>
+
+                    <!-- Metrics grid -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        <!-- P/E Ratio -->
+                        <div class="metric-box">
+                            <div class="metric-label">P/E Ratio</div>
+                            <div class="metric-value" x-text="stock.pe_ratio?.toFixed(1) || 'N/A'"></div>
+                            <div class="metric-help">Price for each $1 of profit</div>
+                        </div>
+
+                        <!-- P/B Ratio -->
+                        <div class="metric-box">
+                            <div class="metric-label">P/B Ratio</div>
+                            <div class="metric-value" x-text="stock.pb_ratio?.toFixed(2) || 'N/A'"></div>
+                            <div class="metric-help">Price vs company assets</div>
+                        </div>
+
+                        <!-- Debt-to-Equity -->
+                        <div class="metric-box">
+                            <div class="metric-label">Debt/Equity</div>
+                            <div class="metric-value" :class="stock.debt_to_equity < 0.5 ? 'text-green-400' : (stock.debt_to_equity > 1.5 ? 'text-red-400' : '')" x-text="stock.debt_to_equity?.toFixed(2) || 'N/A'"></div>
+                            <div class="metric-help">Lower = less debt risk</div>
+                        </div>
+
+                        <!-- Free Cash Flow -->
+                        <div class="metric-box">
+                            <div class="metric-label">Free Cash Flow</div>
+                            <div class="metric-value" :class="stock.free_cash_flow > 0 ? 'text-green-400' : 'text-red-400'" x-text="stock.free_cash_flow ? '$' + stock.free_cash_flow?.toFixed(1) + 'B' : 'N/A'"></div>
+                            <div class="metric-help">Actual cash generated</div>
+                        </div>
+
+                        <!-- RSI -->
+                        <div class="metric-box">
+                            <div class="metric-label">RSI</div>
+                            <div class="metric-value" :class="stock.rsi < 30 ? 'text-green-400' : (stock.rsi > 70 ? 'text-red-400' : '')" x-text="stock.rsi?.toFixed(0) || 'N/A'"></div>
+                            <div class="metric-help" x-text="stock.rsi < 30 ? 'Oversold - potential buy' : (stock.rsi > 70 ? 'Overbought' : 'Neutral zone')"></div>
+                        </div>
+
+                        <!-- 1-Year Return -->
+                        <div class="metric-box">
+                            <div class="metric-label">1Y Return</div>
+                            <div class="metric-value" :class="stock.one_year_return > 0 ? 'text-green-400' : 'text-red-400'" x-text="(stock.one_year_return > 0 ? '+' : '') + stock.one_year_return?.toFixed(1) + '%'"></div>
+                            <div class="metric-help">Performance over past year</div>
+                        </div>
+
+                        <!-- Short Interest -->
+                        <div class="metric-box">
+                            <div class="metric-label">Short Interest</div>
+                            <div class="metric-value" :class="stock.short_interest > 20 ? 'text-yellow-400' : ''" x-text="stock.short_interest?.toFixed(1) + '%' || 'N/A'"></div>
+                            <div class="metric-help">% shares bet against</div>
+                        </div>
+
+                        <!-- Dividend -->
+                        <div class="metric-box">
+                            <div class="metric-label">Dividend</div>
+                            <div class="metric-value" x-text="stock.dividend_yield ? stock.dividend_yield?.toFixed(2) + '%' : 'None'"></div>
+                            <div class="metric-help">Annual yield</div>
+                        </div>
+                    </div>
+
+                    <!-- 52-week range -->
+                    <div class="mb-4">
+                        <div class="flex justify-between text-sm text-dark-500 mb-1">
+                            <span>52-Week Range</span>
+                            <span x-text="'$' + stock.fifty_two_week_low?.toFixed(2) + ' - $' + stock.fifty_two_week_high?.toFixed(2)"></span>
+                        </div>
+                        <div class="h-2 bg-dark-700 rounded-full overflow-hidden">
+                            <div
+                                class="h-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 rounded-full relative"
+                                style="width: 100%"
+                            >
+                                <div
+                                    class="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full border-2 border-dark-900"
+                                    :style="'left: ' + (stock.week_52_position || 50) + '%'"
+                                ></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sentiment & Analyst -->
+                    <div class="flex flex-wrap gap-4 mb-4">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-dark-500">Reddit:</span>
+                            <span
+                                class="px-2 py-1 rounded text-xs font-medium"
+                                :class="{
+                                    'bg-green-900/50 text-green-400': stock.sentiment_label === 'Bullish',
+                                    'bg-red-900/50 text-red-400': stock.sentiment_label === 'Bearish',
+                                    'bg-dark-700 text-dark-300': stock.sentiment_label === 'Mixed'
+                                }"
+                                x-text="stock.sentiment_label + ' (' + stock.reddit_mentions + ' mentions)'"
+                            ></span>
+                        </div>
+                        <div x-show="stock.analyst_rating" class="flex items-center space-x-2">
+                            <span class="text-dark-500">Analysts:</span>
+                            <span class="capitalize" x-text="stock.analyst_rating"></span>
+                            <span x-show="stock.target_upside_pct" class="text-green-400" x-text="'(' + stock.target_upside_pct?.toFixed(0) + '% upside)'"></span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-dark-500">Signals:</span>
+                            <span class="text-green-400" x-text="stock.bullish_signals + ' bullish'"></span>
+                            <span class="text-dark-600">/</span>
+                            <span class="text-red-400" x-text="stock.bearish_signals + ' bearish'"></span>
+                        </div>
+                    </div>
+
+                    <!-- Buy case -->
+                    <div class="bg-dark-800/50 rounded-lg p-4 mb-4">
+                        <h4 class="text-sm font-semibold text-green-400 mb-2">💡 Why It Might Be a Buy</h4>
+                        <p class="text-dark-300 text-sm" x-text="stock.buy_case"></p>
+                    </div>
+
+                    <!-- Risk factors -->
+                    <div class="bg-dark-800/50 rounded-lg p-4 mb-4">
+                        <h4 class="text-sm font-semibold text-red-400 mb-2">⚠️ Risks to Know</h4>
+                        <ul class="text-dark-300 text-sm space-y-1">
+                            <template x-for="risk in stock.risk_factors" :key="risk">
+                                <li class="flex items-start">
+                                    <span class="text-dark-600 mr-2">•</span>
+                                    <span x-text="risk"></span>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+
+                    <!-- Dark horse reasons -->
+                    <div x-show="stock.is_dark_horse && stock.dark_horse_reasons?.length" class="bg-purple-900/30 rounded-lg p-4 mb-4 border border-purple-800/50">
+                        <h4 class="text-sm font-semibold text-purple-400 mb-2">🐴 Why It's Under the Radar</h4>
+                        <ul class="text-dark-300 text-sm space-y-1">
+                            <template x-for="reason in stock.dark_horse_reasons" :key="reason">
+                                <li class="flex items-start">
+                                    <span class="text-dark-600 mr-2">•</span>
+                                    <span x-text="reason"></span>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+
+                    <!-- Recent news -->
+                    <div x-show="stock.recent_news?.length" class="border-t border-dark-800 pt-4">
+                        <h4 class="text-sm font-semibold text-dark-400 mb-2">📰 Recent News</h4>
+                        <ul class="space-y-2">
+                            <template x-for="news in stock.recent_news?.slice(0, 3)" :key="news.title">
+                                <li class="text-sm">
+                                    <a :href="news.link" target="_blank" class="text-blue-400 hover:underline" x-text="news.title"></a>
+                                    <span class="text-dark-600" x-text="' - ' + news.publisher + ', ' + news.date"></span>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+
+                    <!-- Insider activity -->
+                    <div x-show="stock.insider_activity?.length" class="border-t border-dark-800 pt-4 mt-4">
+                        <h4 class="text-sm font-semibold text-dark-400 mb-2">👔 Recent Insider Activity</h4>
+                        <ul class="space-y-1">
+                            <template x-for="activity in stock.insider_activity?.slice(0, 3)" :key="activity.date + activity.insider">
+                                <li class="text-sm">
+                                    <span :class="activity.type === 'buy' ? 'text-green-400' : 'text-red-400'" x-text="activity.type === 'buy' ? '▲ Buy' : '▼ Sell'"></span>
+                                    <span class="text-dark-300" x-text="' - ' + activity.insider"></span>
+                                    <span x-show="activity.value" class="text-dark-500" x-text="' ($' + (activity.value / 1000000).toFixed(1) + 'M)'"></span>
+                                    <span class="text-dark-600" x-text="' - ' + activity.date"></span>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function reportData() {
+    return {
+        report: null,
+        loading: true,
+        error: null,
+        viewMode: 'cards',
+
+        async loadLatestReport() {
+            try {
+                const response = await fetch('/api/reports/latest');
+                if (!response.ok) {
+                    throw new Error('No report available yet');
+                }
+                this.report = await response.json();
+            } catch (e) {
+                this.error = e.message;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+    }
+}
+</script>
+{% endblock %}
