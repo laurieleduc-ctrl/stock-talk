@@ -28,8 +28,12 @@ async def lifespan(app: FastAPI):
     """Application lifespan handler."""
     # Startup
     logger.info("Starting Stock Talk...")
-    init_db()
-    logger.info("Database initialized")
+    try:
+        init_db()
+        logger.info("Database initialized")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
+        logger.warning("App will start but database features won't work until DATABASE_URL is configured")
     yield
     # Shutdown
     logger.info("Shutting down Stock Talk...")
@@ -42,11 +46,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Get the directory where this file is located
+import os
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Mount static files
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory=os.path.join(APP_DIR, "static")), name="static")
 
 # Templates
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory=os.path.join(APP_DIR, "templates"))
 
 # Include API routes
 app.include_router(api_router, prefix="/api")
