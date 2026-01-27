@@ -64,6 +64,27 @@ def get_latest_report(db: Session = Depends(get_db)):
     return _format_report(report)
 
 
+@router.get("/reports/generate")
+def trigger_report_generation_get(db: Session = Depends(get_db)):
+    """Manually trigger report generation (GET for easy browser access)."""
+    try:
+        report = generate_daily_report(db)
+        if report:
+            return {
+                "status": "success",
+                "report_id": report.id,
+                "date": report.report_date.isoformat(),
+                "message": "Report generated! Visit the homepage to view it.",
+            }
+        else:
+            return {
+                "status": "failed",
+                "message": "No stocks met the criteria for today's report",
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/reports/{report_id}")
 def get_report(report_id: int, db: Session = Depends(get_db)):
     """Get a specific report by ID."""
