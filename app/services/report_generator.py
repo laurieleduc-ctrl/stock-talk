@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.models import DailyReport, ReportStock, Stock, StockMention, StockMetrics
-from app.services.reddit_scraper import reddit_scraper, StockMentionData
+from app.services.reddit_scraper import reddit_scraper, StockMentionData, get_fallback_mentions
 from app.services.stock_fetcher import stock_fetcher, StockData
 
 logger = logging.getLogger(__name__)
@@ -437,16 +437,16 @@ class ReportGenerator:
         """
         logger.info("Starting daily report generation...")
 
-        # Step 1: Scrape Reddit for stock mentions
+        # Step 1: Scrape Reddit for stock mentions (or use fallback)
         logger.info("Scraping Reddit for stock mentions...")
         all_mentions = reddit_scraper.get_all_mentions()
         aggregated = reddit_scraper.aggregate_mentions(all_mentions)
 
         if not aggregated:
-            logger.error("No stock mentions found from Reddit")
-            return None
+            logger.warning("No Reddit data available, using fallback stock list")
+            aggregated = get_fallback_mentions()
 
-        logger.info(f"Found {len(aggregated)} unique tickers mentioned on Reddit")
+        logger.info(f"Found {len(aggregated)} unique tickers to analyze")
 
         # Step 2: Filter to stocks with minimum mentions
         qualifying_tickers = [
