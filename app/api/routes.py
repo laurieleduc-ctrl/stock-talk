@@ -5,14 +5,24 @@ API routes for Stock Talk application.
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.database import get_db
+from app.core.config import settings
+from app.core.database import get_db, SessionLocal
 from app.models import DailyReport, ReportStock, Stock
 from app.services.report_generator import generate_daily_report
 
 router = APIRouter()
+
+
+def _generate_full_report_background():
+    """Background task to generate full report with worker settings."""
+    db = SessionLocal()
+    try:
+        generate_daily_report(db, max_stocks=settings.MAX_STOCKS_WORKER)
+    finally:
+        db.close()
 
 
 @router.get("/reports")
@@ -66,7 +76,7 @@ def get_latest_report(db: Session = Depends(get_db)):
 
 @router.get("/reports/generate")
 def trigger_report_generation_get(db: Session = Depends(get_db)):
-    """Manually trigger report generation (GET for easy browser access)."""
+    """Manually trigger report generation (GET for easy browser access). Uses fast mode (15 stocks)."""
     try:
         report = generate_daily_report(db)
         if report:
@@ -83,6 +93,20 @@ def trigger_report_generation_get(db: Session = Depends(get_db)):
             }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/reports/generate-full")
+def trigger_full_report_generation(background_tasks: BackgroundTasks):
+    """
+    Trigger full report generation (60 stocks, 3 years history) in background.
+    This runs asynchronously and won't timeout.
+    """
+    background_tasks.add_task(_generate_full_report_background)
+    return {
+        "status": "started",
+        "message": f"Full report generation started in background ({settings.MAX_STOCKS_WORKER} stocks). "
+                   "Check back in a few minutes and refresh the homepage to see results.",
+    }
 
 
 @router.get("/reports/{report_id}")
