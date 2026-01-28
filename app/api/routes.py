@@ -292,13 +292,16 @@ def _format_report(report: DailyReport) -> dict:
     for rs in sorted(report.stocks, key=lambda x: x.rank):
         stock = rs.stock
 
-        # Calculate 52-week position
+        # Calculate 52-week position (using getattr for potentially missing columns)
         week_52_position = None
-        if rs.fifty_two_week_high and rs.fifty_two_week_low and rs.price_at_report:
-            range_size = rs.fifty_two_week_high - rs.fifty_two_week_low
+        fifty_two_high = getattr(rs, 'fifty_two_week_high', None)
+        fifty_two_low = getattr(rs, 'fifty_two_week_low', None)
+        price_at_report = getattr(rs, 'price_at_report', None)
+        if fifty_two_high and fifty_two_low and price_at_report:
+            range_size = fifty_two_high - fifty_two_low
             if range_size > 0:
                 week_52_position = round(
-                    ((rs.price_at_report - rs.fifty_two_week_low) / range_size) * 100, 1
+                    ((price_at_report - fifty_two_low) / range_size) * 100, 1
                 )
 
         # Use getattr for columns that may not exist in older database schemas
