@@ -74,20 +74,40 @@
             <table class="w-full text-sm">
                 <thead class="bg-dark-900 text-dark-400">
                     <tr>
-                        <th class="px-4 py-3 text-left">#</th>
-                        <th class="px-4 py-3 text-left">Stock</th>
-                        <th class="px-4 py-3 text-right">Price</th>
-                        <th class="px-4 py-3 text-right" title="% below the 3-year high price">% Off 3Y High</th>
-                        <th class="px-4 py-3 text-right">P/E</th>
-                        <th class="px-4 py-3 text-right">RSI</th>
-                        <th class="px-4 py-3 text-right">3M Return</th>
-                        <th class="px-4 py-3 text-right">1Y Return</th>
-                        <th class="px-4 py-3 text-center">Sentiment</th>
-                        <th class="px-4 py-3 text-center" title="Bullish signals / Bearish signals based on: RSI, P/E, PEG, Debt, FCF, Short Interest, and Insider Activity">Signals</th>
+                        <th @click="sortBy('rank')" class="px-4 py-3 text-left cursor-pointer hover:text-white transition-colors">
+                            <span class="flex items-center"># <span x-show="sortColumn === 'rank'" x-text="sortDirection === 'asc' ? ' ▲' : ' ▼'" class="ml-1 text-blue-400"></span></span>
+                        </th>
+                        <th @click="sortBy('ticker')" class="px-4 py-3 text-left cursor-pointer hover:text-white transition-colors">
+                            <span class="flex items-center">Stock <span x-show="sortColumn === 'ticker'" x-text="sortDirection === 'asc' ? ' ▲' : ' ▼'" class="ml-1 text-blue-400"></span></span>
+                        </th>
+                        <th @click="sortBy('price')" class="px-4 py-3 text-right cursor-pointer hover:text-white transition-colors">
+                            <span class="flex items-center justify-end">Price <span x-show="sortColumn === 'price'" x-text="sortDirection === 'asc' ? ' ▲' : ' ▼'" class="ml-1 text-blue-400"></span></span>
+                        </th>
+                        <th @click="sortBy('pct_from_ath')" class="px-4 py-3 text-right cursor-pointer hover:text-white transition-colors" title="% below the 3-year high price">
+                            <span class="flex items-center justify-end">% Off 3Y High <span x-show="sortColumn === 'pct_from_ath'" x-text="sortDirection === 'asc' ? ' ▲' : ' ▼'" class="ml-1 text-blue-400"></span></span>
+                        </th>
+                        <th @click="sortBy('pe_ratio')" class="px-4 py-3 text-right cursor-pointer hover:text-white transition-colors">
+                            <span class="flex items-center justify-end">P/E <span x-show="sortColumn === 'pe_ratio'" x-text="sortDirection === 'asc' ? ' ▲' : ' ▼'" class="ml-1 text-blue-400"></span></span>
+                        </th>
+                        <th @click="sortBy('rsi')" class="px-4 py-3 text-right cursor-pointer hover:text-white transition-colors">
+                            <span class="flex items-center justify-end">RSI <span x-show="sortColumn === 'rsi'" x-text="sortDirection === 'asc' ? ' ▲' : ' ▼'" class="ml-1 text-blue-400"></span></span>
+                        </th>
+                        <th @click="sortBy('three_month_return')" class="px-4 py-3 text-right cursor-pointer hover:text-white transition-colors">
+                            <span class="flex items-center justify-end">3M Return <span x-show="sortColumn === 'three_month_return'" x-text="sortDirection === 'asc' ? ' ▲' : ' ▼'" class="ml-1 text-blue-400"></span></span>
+                        </th>
+                        <th @click="sortBy('one_year_return')" class="px-4 py-3 text-right cursor-pointer hover:text-white transition-colors">
+                            <span class="flex items-center justify-end">1Y Return <span x-show="sortColumn === 'one_year_return'" x-text="sortDirection === 'asc' ? ' ▲' : ' ▼'" class="ml-1 text-blue-400"></span></span>
+                        </th>
+                        <th @click="sortBy('sentiment_label')" class="px-4 py-3 text-center cursor-pointer hover:text-white transition-colors">
+                            <span class="flex items-center justify-center">Sentiment <span x-show="sortColumn === 'sentiment_label'" x-text="sortDirection === 'asc' ? ' ▲' : ' ▼'" class="ml-1 text-blue-400"></span></span>
+                        </th>
+                        <th @click="sortBy('bullish_signals')" class="px-4 py-3 text-center cursor-pointer hover:text-white transition-colors" title="Bullish signals / Bearish signals based on: RSI, P/E, PEG, Debt, FCF, Short Interest, and Insider Activity">
+                            <span class="flex items-center justify-center">Signals <span x-show="sortColumn === 'bullish_signals'" x-text="sortDirection === 'asc' ? ' ▲' : ' ▼'" class="ml-1 text-blue-400"></span></span>
+                        </th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-dark-800">
-                    <template x-for="stock in report?.stocks" :key="stock.ticker">
+                    <template x-for="stock in sortedStocks" :key="stock.ticker">
                         <tr
                             class="hover:bg-dark-900 cursor-pointer"
                             :class="stock.is_dark_horse ? 'bg-purple-900/20' : ''"
@@ -352,6 +372,8 @@ function reportData() {
         loading: true,
         error: null,
         viewMode: 'cards',
+        sortColumn: 'rank',
+        sortDirection: 'asc',
 
         async loadLatestReport() {
             try {
@@ -365,6 +387,58 @@ function reportData() {
             } finally {
                 this.loading = false;
             }
+        },
+
+        sortBy(column) {
+            if (this.sortColumn === column) {
+                // Toggle direction if same column
+                this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                // New column, set to ascending (or descending for numeric columns where higher is usually better)
+                this.sortColumn = column;
+                // Default to descending for returns and signals (higher = better)
+                if (['three_month_return', 'one_year_return', 'bullish_signals'].includes(column)) {
+                    this.sortDirection = 'desc';
+                } else {
+                    this.sortDirection = 'asc';
+                }
+            }
+        },
+
+        get sortedStocks() {
+            if (!this.report?.stocks) return [];
+
+            const stocks = [...this.report.stocks];
+            const column = this.sortColumn;
+            const direction = this.sortDirection;
+
+            return stocks.sort((a, b) => {
+                let aVal = a[column];
+                let bVal = b[column];
+
+                // Handle null/undefined values - push them to the end
+                if (aVal == null && bVal == null) return 0;
+                if (aVal == null) return 1;
+                if (bVal == null) return -1;
+
+                // String comparison for ticker and sentiment
+                if (column === 'ticker' || column === 'sentiment_label') {
+                    aVal = String(aVal).toLowerCase();
+                    bVal = String(bVal).toLowerCase();
+                    if (direction === 'asc') {
+                        return aVal.localeCompare(bVal);
+                    } else {
+                        return bVal.localeCompare(aVal);
+                    }
+                }
+
+                // Numeric comparison
+                if (direction === 'asc') {
+                    return aVal - bVal;
+                } else {
+                    return bVal - aVal;
+                }
+            });
         },
 
         formatDate(dateStr) {

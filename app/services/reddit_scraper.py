@@ -302,21 +302,125 @@ class RedditScraper:
         return dict(aggregated)
 
 
-# Fallback list of popular stocks frequently discussed on Reddit
-# Used when Reddit API is not available
+# Fallback list of stocks to analyze when Reddit API is not available
+# Comprehensive coverage across sectors and market caps for diverse analysis
 FALLBACK_TICKERS = [
-    # Tech / AI
-    "NVDA", "AAPL", "MSFT", "GOOGL", "META", "AMZN", "AMD", "INTC", "TSM", "AVGO",
-    "CRM", "ORCL", "ADBE", "NOW", "PLTR", "SNOW", "NET", "DDOG", "MDB", "CRWD",
-    # Medical / Healthcare
+    # ==================== TECHNOLOGY ====================
+    # Mega-cap Tech
+    "AAPL", "MSFT", "GOOGL", "GOOG", "AMZN", "META", "NVDA", "TSM", "AVGO", "ORCL",
+    # Semiconductors
+    "AMD", "INTC", "QCOM", "TXN", "MU", "AMAT", "LRCX", "KLAC", "ADI", "MRVL",
+    "ON", "NXPI", "MCHP", "SWKS", "QRVO", "ENTG", "MPWR", "ALGM", "WOLF",
+    # Software & Cloud
+    "CRM", "ADBE", "NOW", "INTU", "SNOW", "PANW", "CRWD", "DDOG", "ZS", "FTNT",
+    "WDAY", "SPLK", "TEAM", "MDB", "NET", "OKTA", "HUBS", "VEEV", "CDNS", "SNPS",
+    "ANSS", "PLTR", "PATH", "DOCN", "GTLB", "CFLT", "ESTC", "BILL", "PCTY",
+    # AI / Machine Learning Focus
+    "AI", "SMCI", "ARM", "IONQ", "RGTI", "QUBT", "SOUN", "BBAI", "UPST", "C3AI",
+
+    # ==================== HEALTHCARE & BIOTECH ====================
+    # Large-cap Healthcare
     "UNH", "JNJ", "LLY", "PFE", "ABBV", "MRK", "TMO", "ABT", "DHR", "BMY",
-    "MRNA", "REGN", "VRTX", "ISRG", "GILD", "AMGN", "MDT", "SYK", "ZTS", "HCA",
-    # International / ADRs
-    "BABA", "TSM", "NVO", "ASML", "TM", "SONY", "SAP", "SHOP", "SE", "MELI",
-    # Popular WSB / Reddit stocks
-    "TSLA", "GME", "AMC", "SOFI", "RIVN", "LCID", "NIO", "COIN", "HOOD", "RBLX",
-    "DIS", "NFLX", "PYPL", "SQ", "UBER", "ABNB", "SPOT", "ROKU", "ZM", "DOCU",
+    "AMGN", "GILD", "VRTX", "REGN", "BIIB", "ILMN", "DXCM", "IDXX", "IQV", "ZTS",
+    # Medical Devices
+    "MDT", "SYK", "BSX", "EW", "ISRG", "BDX", "ZBH", "HOLX", "ALGN", "PODD",
+    # Biotech Growth
+    "MRNA", "BNTX", "SGEN", "ALNY", "BMRN", "INCY", "EXAS", "RARE", "IONS", "SRPT",
+    "NBIX", "PCVX", "LEGN", "DAWN", "RXRX", "KRYS", "ARWR", "NTLA", "BEAM", "EDIT",
+    # Healthcare Services
+    "HCA", "ELV", "CI", "HUM", "CNC", "CVS", "MCK", "CAH", "ABC", "WBA",
+
+    # ==================== FINANCIALS ====================
+    # Major Banks
+    "JPM", "BAC", "WFC", "C", "GS", "MS", "USB", "PNC", "TFC", "SCHW",
+    # Insurance
+    "BRK.B", "PRU", "MET", "AIG", "AFL", "ALL", "TRV", "CB", "PGR", "HIG",
+    # Fintech & Payment
+    "V", "MA", "PYPL", "SQ", "FIS", "FISV", "AXP", "COF", "DFS", "AFRM",
+    "SOFI", "UPST", "COIN", "HOOD", "NU", "MELI", "ADYEN",
+    # Asset Management & Exchanges
+    "BLK", "KKR", "APO", "ARES", "BX", "ICE", "CME", "NDAQ", "MSCI", "SPGI",
+
+    # ==================== CONSUMER DISCRETIONARY ====================
+    # E-commerce & Retail
+    "AMZN", "BABA", "JD", "PDD", "EBAY", "ETSY", "W", "CHWY", "RVLV",
+    # Automotive
+    "TSLA", "GM", "F", "RIVN", "LCID", "NIO", "XPEV", "LI", "STLA", "TM",
+    "HMC", "RACE", "APTV", "LEA", "BWA", "GNTX",
+    # Restaurants & Travel
+    "MCD", "SBUX", "CMG", "DRI", "YUM", "DNUT", "WING", "CAVA",
+    "MAR", "HLT", "H", "ABNB", "BKNG", "EXPE", "UBER", "LYFT",
+    # Entertainment & Gaming
+    "DIS", "NFLX", "WBD", "PARA", "LYV", "SPOT", "RBLX", "EA", "TTWO", "ATVI",
+    "DKNG", "PENN", "MGM", "CZR", "WYNN", "LVS",
+    # Apparel & Luxury
+    "NKE", "LULU", "TJX", "ROST", "GPS", "ANF", "AEO", "TPR", "VFC", "RL",
+
+    # ==================== CONSUMER STAPLES ====================
+    "PG", "KO", "PEP", "COST", "WMT", "TGT", "PM", "MO", "MDLZ", "CL",
+    "KMB", "GIS", "K", "HSY", "KHC", "SJM", "CAG", "CPB", "HRL", "TSN",
+    "KR", "SYY", "ADM", "BG", "MNST", "STZ", "TAP", "SAM", "BF.B",
+
+    # ==================== INDUSTRIALS ====================
+    # Aerospace & Defense
+    "BA", "LMT", "RTX", "NOC", "GD", "LHX", "TDG", "HWM", "AXON", "HEI",
+    # Heavy Machinery & Equipment
+    "CAT", "DE", "CNH", "AGCO", "CMI", "PCAR", "OSK", "TEX", "GNRC",
+    # Logistics & Transportation
+    "UPS", "FDX", "CSX", "UNP", "NSC", "ODFL", "XPO", "JBHT", "CHRW", "EXPD",
+    # Airlines
+    "DAL", "UAL", "LUV", "AAL", "ALK", "JBLU", "SAVE",
+    # Conglomerates & Other Industrial
+    "HON", "GE", "MMM", "EMR", "ETN", "ROK", "AME", "PH", "ITW", "SWK",
+    "IR", "DOV", "ROP", "VRSK", "CTAS", "PAYX", "CINF", "FAST", "WSO",
+
+    # ==================== ENERGY ====================
+    # Oil & Gas Majors
+    "XOM", "CVX", "COP", "EOG", "SLB", "OXY", "PSX", "MPC", "VLO", "PXD",
+    "DVN", "FANG", "HES", "HAL", "BKR", "OKE", "WMB", "KMI", "ET", "EPD",
+    # Clean Energy
+    "NEE", "ENPH", "SEDG", "FSLR", "RUN", "NOVA", "PLUG", "BE", "ENVX",
+
+    # ==================== MATERIALS ====================
+    "LIN", "APD", "SHW", "ECL", "DD", "DOW", "PPG", "NEM", "FCX", "NUE",
+    "STLD", "CLF", "X", "AA", "SCCO", "VMC", "MLM", "CX", "MOS", "CF",
+
+    # ==================== REAL ESTATE ====================
+    "AMT", "PLD", "CCI", "EQIX", "PSA", "SPG", "O", "WELL", "DLR", "AVB",
+    "EQR", "VTR", "ARE", "BXP", "SLG", "VNO", "KIM", "REG", "FRT", "MAA",
+
+    # ==================== UTILITIES ====================
+    "NEE", "DUK", "SO", "D", "AEP", "SRE", "XEL", "ED", "PCG", "EXC",
+    "WEC", "ES", "AWK", "AEE", "CMS", "DTE", "ETR", "FE", "PPL", "NI",
+
+    # ==================== COMMUNICATION SERVICES ====================
+    "GOOGL", "META", "VZ", "T", "TMUS", "CHTR", "CMCSA", "NFLX", "DIS",
+    "EA", "TTWO", "MTCH", "SNAP", "PINS", "RDDT", "ZG", "Z", "IAC",
+
+    # ==================== INTERNATIONAL / ADRs ====================
+    # Asia
+    "BABA", "JD", "PDD", "BIDU", "NIO", "XPEV", "LI", "TSM", "SONY", "TM",
+    "HMC", "MUFG", "SMFG", "KB", "SHG", "WIT", "INFY", "HDB", "IBN",
+    # Europe
+    "ASML", "SAP", "NVO", "AZN", "GSK", "SNY", "NVS", "SHEL", "BP", "TTE",
+    "UL", "DEO", "BUD", "RIO", "BHP", "VALE", "ABB", "SIEGY", "EADSY",
+    # Latin America
+    "MELI", "NU", "ITUB", "BBD", "PBR", "ABEV", "SQM", "BSBR", "ERJ",
+    # Canada
+    "SHOP", "TD", "RY", "BNS", "ENB", "CNQ", "SU", "TRP", "CP", "CNI",
+
+    # ==================== POPULAR REDDIT / MOMENTUM ====================
+    "GME", "AMC", "BBBY", "BB", "CLOV", "WISH", "SKLZ", "PLTR", "SOFI",
+    "RIVN", "LCID", "NIO", "COIN", "HOOD", "RBLX", "ROKU", "ZM", "DOCU",
+    "SNOW", "U", "DKNG", "SPCE", "ARKK", "SQQQ", "TQQQ", "UVXY",
+
+    # ==================== SMALL/MID-CAP GROWTH ====================
+    "CELH", "DUOL", "AXON", "TOST", "BROS", "RYAN", "GLBE", "RELY", "ONON",
+    "BIRK", "IOT", "S", "FRSH", "MNDY", "APP", "GRAB", "SE", "CPNG",
 ]
+
+# Remove duplicates while preserving order
+FALLBACK_TICKERS = list(dict.fromkeys(FALLBACK_TICKERS))
 
 
 def get_fallback_mentions() -> dict[str, dict]:

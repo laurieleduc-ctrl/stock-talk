@@ -8,7 +8,10 @@ allowing analysis of more stocks with full historical data.
 """
 
 import logging
+import os
+import threading
 from datetime import datetime
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.blocking import BlockingScheduler
@@ -23,6 +26,29 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    """Simple HTTP handler for healthcheck endpoint."""
+
+    def do_GET(self):
+        """Respond to GET requests with 200 OK."""
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"OK - Worker scheduler running")
+
+    def log_message(self, format, *args):
+        """Suppress default logging to avoid noise."""
+        pass
+
+
+def start_health_server():
+    """Start a minimal HTTP server for healthchecks in a background thread."""
+    port = int(os.environ.get("PORT", 8000))
+    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
+    logger.info(f"Health check server listening on port {port}")
+    server.serve_forever()
 
 
 def run_daily_report():
@@ -51,6 +77,10 @@ def run_daily_report():
 def main():
     """Main entry point for the scheduler."""
     logger.info("Initializing Stock Talk scheduler...")
+
+    # Start health check server in background thread (for Railway healthchecks)
+    health_thread = threading.Thread(target=start_health_server, daemon=True)
+    health_thread.start()
 
     # Initialize database
     init_db()
