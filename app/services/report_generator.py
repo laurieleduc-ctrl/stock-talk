@@ -462,9 +462,9 @@ class ReportGenerator:
             if data["total_mentions"] >= settings.MIN_REDDIT_MENTIONS
         ]
 
-        # Limit to top 40 tickers to keep report generation fast
+        # Limit to top 25 tickers to keep report generation fast
         # (we'll select top 20 from these after analysis)
-        qualifying_tickers = qualifying_tickers[:40]
+        qualifying_tickers = qualifying_tickers[:25]
 
         logger.info(f"Analyzing {len(qualifying_tickers)} tickers")
 

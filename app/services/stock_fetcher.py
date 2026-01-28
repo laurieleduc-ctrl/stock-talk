@@ -255,7 +255,8 @@ class StockFetcher:
             data.fifty_two_week_low = self._safe_get(info, "fiftyTwoWeekLow", 0.0)
 
             # Get historical data for ATH and RSI calculation
-            history = ticker.history(period="5y")
+            # Using 1y instead of 5y for faster fetching
+            history = ticker.history(period="1y")
             if not history.empty:
                 data.all_time_high = round(history["High"].max(), 2)
                 if data.all_time_high > 0 and data.current_price > 0:
