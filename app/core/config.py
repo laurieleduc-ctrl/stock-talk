@@ -48,6 +48,11 @@ class Settings:
     # Price drop threshold for value consideration (% from ATH)
     MIN_DROP_FROM_ATH: float = 0.15  # At least 15% below all-time high
 
+    # Stock fetching settings
+    STOCK_HISTORY_PERIOD: str = "3y"  # Historical data period for ATH calculation
+    MAX_STOCKS_WEB: int = 15  # Max stocks for web request (fast, avoids timeout)
+    MAX_STOCKS_WORKER: int = 60  # Max stocks for worker (no timeout constraint)
+
     @property
     def is_production(self) -> bool:
         return self.ENVIRONMENT == "production"

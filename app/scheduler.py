@@ -1,6 +1,10 @@
 """
 Scheduler for running daily report generation.
 Runs at 9pm Pacific time.
+
+This module runs as a separate worker process from the web server.
+It handles the scheduled 9pm PT report generation with no timeout constraints,
+allowing analysis of more stocks with full historical data.
 """
 
 import logging
@@ -32,7 +36,8 @@ def run_daily_report():
 
     db = SessionLocal()
     try:
-        report = generate_daily_report(db)
+        # Use full stock limit for scheduled worker (no timeout constraint)
+        report = generate_daily_report(db, max_stocks=settings.MAX_STOCKS_WORKER)
         if report:
             logger.info(f"Daily report generated successfully: ID {report.id}")
         else:

@@ -98,8 +98,9 @@ class AnalyzedStock:
 class ReportGenerator:
     """Generates daily stock analysis reports."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, max_stocks: int = None):
         self.db = db
+        self.max_stocks = max_stocks or settings.MAX_STOCKS_WEB
 
     def _categorize_sector(self, sector: str, industry: str) -> str:
         """Categorize stock into one of our focus sectors."""
@@ -462,9 +463,10 @@ class ReportGenerator:
             if data["total_mentions"] >= settings.MIN_REDDIT_MENTIONS
         ]
 
-        # Limit to 15 tickers for fast report generation
-        # (Railway has ~30s timeout, yfinance is slow)
-        qualifying_tickers = qualifying_tickers[:15]
+        # Limit tickers based on context (web vs worker)
+        # Web requests have ~30s timeout, worker has no limit
+        max_stocks = getattr(self, 'max_stocks', settings.MAX_STOCKS_WEB)
+        qualifying_tickers = qualifying_tickers[:max_stocks]
 
         logger.info(f"Analyzing {len(qualifying_tickers)} tickers")
 
@@ -639,7 +641,13 @@ class ReportGenerator:
         return report
 
 
-def generate_daily_report(db: Session) -> Optional[DailyReport]:
-    """Convenience function to generate daily report."""
-    generator = ReportGenerator(db)
+def generate_daily_report(db: Session, max_stocks: int = None) -> Optional[DailyReport]:
+    """Convenience function to generate daily report.
+
+    Args:
+        db: Database session
+        max_stocks: Maximum stocks to analyze (default: MAX_STOCKS_WEB for web,
+                    use MAX_STOCKS_WORKER for scheduled jobs)
+    """
+    generator = ReportGenerator(db, max_stocks=max_stocks)
     return generator.generate_report()

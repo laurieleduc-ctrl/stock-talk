@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y \
 # Copy all application code first (needed for pyproject.toml to find README.md)
 COPY . .
 
-# Make start script executable
-RUN chmod +x start.sh
+# Make start scripts executable
+RUN chmod +x start.sh start-worker.sh
 
 # Install Python dependencies
 RUN pip install --no-cache-dir .
