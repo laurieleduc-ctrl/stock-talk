@@ -1,7 +1,10 @@
 #!/bin/sh
 
-# Check if this is a worker service (set WORKER=true in Railway env vars)
-if [ "$WORKER" = "true" ]; then
+# Check if this is a worker service (set WORKER=true or WORKER=TRUE in Railway env vars)
+# Convert to lowercase for comparison
+WORKER_LOWER=$(echo "$WORKER" | tr '[:upper:]' '[:lower:]')
+
+if [ "$WORKER_LOWER" = "true" ]; then
     echo "Starting worker (scheduler)..."
     exec python -m app.scheduler
 else
