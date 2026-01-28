@@ -312,72 +312,72 @@ def _format_report(report: DailyReport) -> dict:
                 "name": getattr(stock, 'name', 'Unknown') if stock else 'Unknown',
                 "sector": getattr(stock, 'sector', 'Unknown') if stock else 'Unknown',
                 "industry": getattr(stock, 'industry', 'Unknown') if stock else 'Unknown',
-            "sector_category": getattr(rs, 'sector_category', None),
-            "is_dark_horse": getattr(rs, 'is_dark_horse', False),
-            "market_cap": getattr(stock, 'market_cap', None),
-            "market_cap_category": getattr(stock, 'market_cap_category', None),
+                "sector_category": getattr(rs, 'sector_category', None),
+                "is_dark_horse": getattr(rs, 'is_dark_horse', False),
+                "market_cap": getattr(stock, 'market_cap', None) if stock else None,
+                "market_cap_category": getattr(stock, 'market_cap_category', None) if stock else None,
 
-            # Price data
-            "price": getattr(rs, 'price_at_report', None),
-            "pct_from_ath": getattr(rs, 'pct_from_ath', None),
-            "fifty_two_week_high": getattr(rs, 'fifty_two_week_high', None),
-            "fifty_two_week_low": getattr(rs, 'fifty_two_week_low', None),
-            "week_52_position": week_52_position,
+                # Price data
+                "price": getattr(rs, 'price_at_report', None),
+                "pct_from_ath": getattr(rs, 'pct_from_ath', None),
+                "fifty_two_week_high": getattr(rs, 'fifty_two_week_high', None),
+                "fifty_two_week_low": getattr(rs, 'fifty_two_week_low', None),
+                "week_52_position": week_52_position,
 
-            # Valuation
-            "pe_ratio": getattr(rs, 'pe_ratio', None),
-            "pb_ratio": getattr(rs, 'pb_ratio', None),
-            "peg_ratio": getattr(rs, 'peg_ratio', None),
+                # Valuation
+                "pe_ratio": getattr(rs, 'pe_ratio', None),
+                "pb_ratio": getattr(rs, 'pb_ratio', None),
+                "peg_ratio": getattr(rs, 'peg_ratio', None),
 
-            # Financial health
-            "debt_to_equity": getattr(rs, 'debt_to_equity', None),
-            "free_cash_flow": getattr(rs, 'free_cash_flow', None),
-            "profit_margin": getattr(rs, 'profit_margin', None),
+                # Financial health
+                "debt_to_equity": getattr(rs, 'debt_to_equity', None),
+                "free_cash_flow": getattr(rs, 'free_cash_flow', None),
+                "profit_margin": getattr(rs, 'profit_margin', None),
 
-            # Dividends
-            "dividend_yield": getattr(rs, 'dividend_yield', None),
+                # Dividends
+                "dividend_yield": getattr(rs, 'dividend_yield', None),
 
-            # Technical
-            "rsi": getattr(rs, 'rsi', None),
-            "beta": getattr(rs, 'beta', None),
-            "one_year_return": getattr(rs, 'one_year_return', None),
-            "three_month_return": getattr(rs, 'three_month_return', None),
+                # Technical
+                "rsi": getattr(rs, 'rsi', None),
+                "beta": getattr(rs, 'beta', None),
+                "one_year_return": getattr(rs, 'one_year_return', None),
+                "three_month_return": getattr(rs, 'three_month_return', None),
 
-            # Company info
-            "business_summary": getattr(rs, 'business_summary', '') or "",
+                # Company info
+                "business_summary": getattr(rs, 'business_summary', '') or "",
 
-            # Ownership
-            "short_interest": getattr(rs, 'short_interest', None),
-            "institutional_ownership": getattr(rs, 'institutional_ownership', None),
+                # Ownership
+                "short_interest": getattr(rs, 'short_interest', None),
+                "institutional_ownership": getattr(rs, 'institutional_ownership', None),
 
-            # Analyst
-            "analyst_rating": getattr(rs, 'analyst_rating', None),
-            "analyst_count": getattr(rs, 'analyst_count', None),
-            "target_price_mean": getattr(rs, 'target_price_mean', None),
-            "target_upside_pct": getattr(rs, 'target_upside_pct', None),
+                # Analyst
+                "analyst_rating": getattr(rs, 'analyst_rating', None),
+                "analyst_count": getattr(rs, 'analyst_count', None),
+                "target_price_mean": getattr(rs, 'target_price_mean', None),
+                "target_upside_pct": getattr(rs, 'target_upside_pct', None),
 
-            # Earnings
-            "next_earnings_date": getattr(rs, 'next_earnings_date', None).isoformat() if getattr(rs, 'next_earnings_date', None) else None,
+                # Earnings
+                "next_earnings_date": getattr(rs, 'next_earnings_date', None).isoformat() if getattr(rs, 'next_earnings_date', None) else None,
 
-            # Reddit
-            "reddit_mentions": getattr(rs, 'reddit_mentions_week', None),
-            "reddit_sentiment": getattr(rs, 'reddit_sentiment', None),
-            "sentiment_label": getattr(rs, 'sentiment_label', None),
+                # Reddit
+                "reddit_mentions": getattr(rs, 'reddit_mentions_week', None),
+                "reddit_sentiment": getattr(rs, 'reddit_sentiment', None),
+                "sentiment_label": getattr(rs, 'sentiment_label', None),
 
-            # Activity & News
-            "insider_activity": getattr(rs, 'insider_activity', None) or [],
-            "recent_news": getattr(rs, 'recent_news', None) or [],
+                # Activity & News
+                "insider_activity": getattr(rs, 'insider_activity', None) or [],
+                "recent_news": getattr(rs, 'recent_news', None) or [],
 
-            # Analysis
-            "buy_case": getattr(rs, 'buy_case', None),
-            "risk_factors": getattr(rs, 'risk_factors', None) or [],
-            "dark_horse_reasons": getattr(rs, 'dark_horse_reasons', None) or [],
+                # Analysis
+                "buy_case": getattr(rs, 'buy_case', None),
+                "risk_factors": getattr(rs, 'risk_factors', None) or [],
+                "dark_horse_reasons": getattr(rs, 'dark_horse_reasons', None) or [],
 
-            # Signals
-            "bullish_signals": getattr(rs, 'bullish_signals', None),
-            "bearish_signals": getattr(rs, 'bearish_signals', None),
-            "neutral_signals": getattr(rs, 'neutral_signals', None),
-        })
+                # Signals
+                "bullish_signals": getattr(rs, 'bullish_signals', None),
+                "bearish_signals": getattr(rs, 'bearish_signals', None),
+                "neutral_signals": getattr(rs, 'neutral_signals', None),
+            })
         except Exception as e:
             # Skip stocks that fail to load, log the error
             import logging
