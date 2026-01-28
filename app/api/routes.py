@@ -290,27 +290,28 @@ def _format_report(report: DailyReport) -> dict:
     stocks_data = []
 
     for rs in sorted(report.stocks, key=lambda x: x.rank):
-        stock = rs.stock
+        try:
+            stock = rs.stock
 
-        # Calculate 52-week position (using getattr for potentially missing columns)
-        week_52_position = None
-        fifty_two_high = getattr(rs, 'fifty_two_week_high', None)
-        fifty_two_low = getattr(rs, 'fifty_two_week_low', None)
-        price_at_report = getattr(rs, 'price_at_report', None)
-        if fifty_two_high and fifty_two_low and price_at_report:
-            range_size = fifty_two_high - fifty_two_low
-            if range_size > 0:
-                week_52_position = round(
-                    ((price_at_report - fifty_two_low) / range_size) * 100, 1
-                )
+            # Calculate 52-week position (using getattr for potentially missing columns)
+            week_52_position = None
+            fifty_two_high = getattr(rs, 'fifty_two_week_high', None)
+            fifty_two_low = getattr(rs, 'fifty_two_week_low', None)
+            price_at_report = getattr(rs, 'price_at_report', None)
+            if fifty_two_high and fifty_two_low and price_at_report:
+                range_size = fifty_two_high - fifty_two_low
+                if range_size > 0:
+                    week_52_position = round(
+                        ((price_at_report - fifty_two_low) / range_size) * 100, 1
+                    )
 
-        # Use getattr for columns that may not exist in older database schemas
-        stocks_data.append({
-            "rank": rs.rank,
-            "ticker": stock.ticker,
-            "name": stock.name,
-            "sector": stock.sector,
-            "industry": stock.industry,
+            # Use getattr for columns that may not exist in older database schemas
+            stocks_data.append({
+                "rank": rs.rank,
+                "ticker": getattr(stock, 'ticker', 'UNKNOWN') if stock else 'UNKNOWN',
+                "name": getattr(stock, 'name', 'Unknown') if stock else 'Unknown',
+                "sector": getattr(stock, 'sector', 'Unknown') if stock else 'Unknown',
+                "industry": getattr(stock, 'industry', 'Unknown') if stock else 'Unknown',
             "sector_category": getattr(rs, 'sector_category', None),
             "is_dark_horse": getattr(rs, 'is_dark_horse', False),
             "market_cap": getattr(stock, 'market_cap', None),
@@ -377,6 +378,11 @@ def _format_report(report: DailyReport) -> dict:
             "bearish_signals": getattr(rs, 'bearish_signals', None),
             "neutral_signals": getattr(rs, 'neutral_signals', None),
         })
+        except Exception as e:
+            # Skip stocks that fail to load, log the error
+            import logging
+            logging.getLogger(__name__).error(f"Error formatting stock in report: {e}")
+            continue
 
     # Sector summary
     sector_counts = {}
