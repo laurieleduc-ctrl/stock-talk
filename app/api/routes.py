@@ -301,39 +301,40 @@ def _format_report(report: DailyReport) -> dict:
                     ((rs.price_at_report - rs.fifty_two_week_low) / range_size) * 100, 1
                 )
 
+        # Use getattr for columns that may not exist in older database schemas
         stocks_data.append({
             "rank": rs.rank,
             "ticker": stock.ticker,
             "name": stock.name,
             "sector": stock.sector,
             "industry": stock.industry,
-            "sector_category": rs.sector_category,
-            "is_dark_horse": rs.is_dark_horse,
-            "market_cap": stock.market_cap,
-            "market_cap_category": stock.market_cap_category,
+            "sector_category": getattr(rs, 'sector_category', None),
+            "is_dark_horse": getattr(rs, 'is_dark_horse', False),
+            "market_cap": getattr(stock, 'market_cap', None),
+            "market_cap_category": getattr(stock, 'market_cap_category', None),
 
             # Price data
-            "price": rs.price_at_report,
-            "pct_from_ath": rs.pct_from_ath,
-            "fifty_two_week_high": rs.fifty_two_week_high,
-            "fifty_two_week_low": rs.fifty_two_week_low,
+            "price": getattr(rs, 'price_at_report', None),
+            "pct_from_ath": getattr(rs, 'pct_from_ath', None),
+            "fifty_two_week_high": getattr(rs, 'fifty_two_week_high', None),
+            "fifty_two_week_low": getattr(rs, 'fifty_two_week_low', None),
             "week_52_position": week_52_position,
 
             # Valuation
-            "pe_ratio": rs.pe_ratio,
-            "pb_ratio": rs.pb_ratio,
-            "peg_ratio": rs.peg_ratio,
+            "pe_ratio": getattr(rs, 'pe_ratio', None),
+            "pb_ratio": getattr(rs, 'pb_ratio', None),
+            "peg_ratio": getattr(rs, 'peg_ratio', None),
 
             # Financial health
-            "debt_to_equity": rs.debt_to_equity,
-            "free_cash_flow": rs.free_cash_flow,
-            "profit_margin": rs.profit_margin,
+            "debt_to_equity": getattr(rs, 'debt_to_equity', None),
+            "free_cash_flow": getattr(rs, 'free_cash_flow', None),
+            "profit_margin": getattr(rs, 'profit_margin', None),
 
             # Dividends
-            "dividend_yield": rs.dividend_yield,
+            "dividend_yield": getattr(rs, 'dividend_yield', None),
 
             # Technical
-            "rsi": rs.rsi,
+            "rsi": getattr(rs, 'rsi', None),
             "beta": getattr(rs, 'beta', None),
             "one_year_return": getattr(rs, 'one_year_return', None),
             "three_month_return": getattr(rs, 'three_month_return', None),
@@ -342,36 +343,36 @@ def _format_report(report: DailyReport) -> dict:
             "business_summary": getattr(rs, 'business_summary', '') or "",
 
             # Ownership
-            "short_interest": rs.short_interest,
-            "institutional_ownership": rs.institutional_ownership,
+            "short_interest": getattr(rs, 'short_interest', None),
+            "institutional_ownership": getattr(rs, 'institutional_ownership', None),
 
             # Analyst
-            "analyst_rating": rs.analyst_rating,
-            "analyst_count": rs.analyst_count,
-            "target_price_mean": rs.target_price_mean,
-            "target_upside_pct": rs.target_upside_pct,
+            "analyst_rating": getattr(rs, 'analyst_rating', None),
+            "analyst_count": getattr(rs, 'analyst_count', None),
+            "target_price_mean": getattr(rs, 'target_price_mean', None),
+            "target_upside_pct": getattr(rs, 'target_upside_pct', None),
 
             # Earnings
-            "next_earnings_date": rs.next_earnings_date.isoformat() if rs.next_earnings_date else None,
+            "next_earnings_date": getattr(rs, 'next_earnings_date', None).isoformat() if getattr(rs, 'next_earnings_date', None) else None,
 
             # Reddit
-            "reddit_mentions": rs.reddit_mentions_week,
-            "reddit_sentiment": rs.reddit_sentiment,
-            "sentiment_label": rs.sentiment_label,
+            "reddit_mentions": getattr(rs, 'reddit_mentions_week', None),
+            "reddit_sentiment": getattr(rs, 'reddit_sentiment', None),
+            "sentiment_label": getattr(rs, 'sentiment_label', None),
 
             # Activity & News
-            "insider_activity": rs.insider_activity or [],
-            "recent_news": rs.recent_news or [],
+            "insider_activity": getattr(rs, 'insider_activity', None) or [],
+            "recent_news": getattr(rs, 'recent_news', None) or [],
 
             # Analysis
-            "buy_case": rs.buy_case,
-            "risk_factors": rs.risk_factors or [],
-            "dark_horse_reasons": rs.dark_horse_reasons or [],
+            "buy_case": getattr(rs, 'buy_case', None),
+            "risk_factors": getattr(rs, 'risk_factors', None) or [],
+            "dark_horse_reasons": getattr(rs, 'dark_horse_reasons', None) or [],
 
             # Signals
-            "bullish_signals": rs.bullish_signals,
-            "bearish_signals": rs.bearish_signals,
-            "neutral_signals": rs.neutral_signals,
+            "bullish_signals": getattr(rs, 'bullish_signals', None),
+            "bearish_signals": getattr(rs, 'bearish_signals', None),
+            "neutral_signals": getattr(rs, 'neutral_signals', None),
         })
 
     # Sector summary
