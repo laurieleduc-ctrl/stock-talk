@@ -334,12 +334,12 @@ def _format_report(report: DailyReport) -> dict:
 
             # Technical
             "rsi": rs.rsi,
-            "beta": rs.beta,
-            "one_year_return": rs.one_year_return,
-            "three_month_return": rs.three_month_return,
+            "beta": getattr(rs, 'beta', None),
+            "one_year_return": getattr(rs, 'one_year_return', None),
+            "three_month_return": getattr(rs, 'three_month_return', None),
 
             # Company info
-            "business_summary": rs.business_summary or "",
+            "business_summary": getattr(rs, 'business_summary', '') or "",
 
             # Ownership
             "short_interest": rs.short_interest,
