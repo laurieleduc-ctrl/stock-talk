@@ -217,12 +217,13 @@ class StockFetcher:
             logger.debug(f"Error getting news: {e}")
         return news_items
 
-    def fetch_stock(self, ticker_symbol: str) -> StockData:
+    def fetch_stock(self, ticker_symbol: str, fast_mode: bool = False) -> StockData:
         """
         Fetch comprehensive data for a single stock.
 
         Args:
             ticker_symbol: Stock ticker (e.g., 'AAPL')
+            fast_mode: If True, skip slow operations (news, insider, earnings)
 
         Returns:
             StockData object with all available metrics
@@ -332,25 +333,27 @@ class StockFetcher:
             data.target_price_high = self._safe_get(info, "targetHighPrice")
             data.target_price_mean = self._safe_get(info, "targetMeanPrice")
 
-            # Earnings
-            earnings_dates = ticker.earnings_dates
-            if earnings_dates is not None and not earnings_dates.empty:
-                future_earnings = earnings_dates[earnings_dates.index > datetime.now()]
-                if not future_earnings.empty:
-                    data.next_earnings_date = future_earnings.index[0].to_pydatetime()
+            # Skip slow operations in fast mode
+            if not fast_mode:
+                # Earnings
+                earnings_dates = ticker.earnings_dates
+                if earnings_dates is not None and not earnings_dates.empty:
+                    future_earnings = earnings_dates[earnings_dates.index > datetime.now()]
+                    if not future_earnings.empty:
+                        data.next_earnings_date = future_earnings.index[0].to_pydatetime()
 
-                # Get last earnings surprise
-                past_earnings = earnings_dates[earnings_dates.index <= datetime.now()]
-                if not past_earnings.empty and "Surprise(%)" in past_earnings.columns:
-                    last_surprise = past_earnings["Surprise(%)"].iloc[0]
-                    if not pd.isna(last_surprise):
-                        data.earnings_surprise_pct = round(last_surprise, 2)
+                    # Get last earnings surprise
+                    past_earnings = earnings_dates[earnings_dates.index <= datetime.now()]
+                    if not past_earnings.empty and "Surprise(%)" in past_earnings.columns:
+                        last_surprise = past_earnings["Surprise(%)"].iloc[0]
+                        if not pd.isna(last_surprise):
+                            data.earnings_surprise_pct = round(last_surprise, 2)
 
-            # Insider activity
-            data.insider_activity = self._get_insider_activity(ticker)
+                # Insider activity
+                data.insider_activity = self._get_insider_activity(ticker)
 
-            # Recent news
-            data.recent_news = self._get_recent_news(ticker)
+                # Recent news
+                data.recent_news = self._get_recent_news(ticker)
 
             logger.info(f"Successfully fetched data for {ticker_symbol}")
 
@@ -361,12 +364,13 @@ class StockFetcher:
 
         return data
 
-    def fetch_multiple(self, tickers: list[str]) -> dict[str, StockData]:
+    def fetch_multiple(self, tickers: list[str], fast_mode: bool = True) -> dict[str, StockData]:
         """
         Fetch data for multiple stocks.
 
         Args:
             tickers: List of ticker symbols
+            fast_mode: If True, skip slow operations for speed
 
         Returns:
             Dictionary mapping tickers to StockData objects
@@ -375,7 +379,7 @@ class StockFetcher:
 
         for ticker in tickers:
             logger.info(f"Fetching data for {ticker}...")
-            results[ticker] = self.fetch_stock(ticker)
+            results[ticker] = self.fetch_stock(ticker, fast_mode=fast_mode)
 
         return results
 

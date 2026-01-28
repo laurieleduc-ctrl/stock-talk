@@ -462,9 +462,9 @@ class ReportGenerator:
             if data["total_mentions"] >= settings.MIN_REDDIT_MENTIONS
         ]
 
-        # Limit to top 25 tickers to keep report generation fast
-        # (we'll select top 20 from these after analysis)
-        qualifying_tickers = qualifying_tickers[:25]
+        # Limit to 15 tickers for fast report generation
+        # (Railway has ~30s timeout, yfinance is slow)
+        qualifying_tickers = qualifying_tickers[:15]
 
         logger.info(f"Analyzing {len(qualifying_tickers)} tickers")
 
