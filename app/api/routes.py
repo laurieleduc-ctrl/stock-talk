@@ -336,6 +336,10 @@ def _format_report(report: DailyReport) -> dict:
             "rsi": rs.rsi,
             "beta": rs.beta,
             "one_year_return": rs.one_year_return,
+            "three_month_return": rs.three_month_return,
+
+            # Company info
+            "business_summary": rs.business_summary or "",
 
             # Ownership
             "short_interest": rs.short_interest,

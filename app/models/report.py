@@ -66,7 +66,11 @@ class ReportStock(Base):
     short_interest = Column(Float)
     institutional_ownership = Column(Float)
     one_year_return = Column(Float)
+    three_month_return = Column(Float)
     beta = Column(Float)
+
+    # Company description
+    business_summary = Column(Text)
 
     # 52-week range
     fifty_two_week_high = Column(Float)

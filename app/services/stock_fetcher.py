@@ -64,8 +64,12 @@ class StockData:
 
     # Performance
     one_year_return: Optional[float] = None
+    three_month_return: Optional[float] = None
     ytd_return: Optional[float] = None
     one_month_return: Optional[float] = None
+
+    # Company description
+    business_summary: str = ""
 
     # Ownership
     short_interest: Optional[float] = None
@@ -153,6 +157,7 @@ class StockFetcher:
         """Calculate various return periods."""
         returns = {
             "one_year": None,
+            "three_month": None,
             "ytd": None,
             "one_month": None,
         }
@@ -163,10 +168,15 @@ class StockFetcher:
 
             current_price = float(history["Close"].iloc[-1])
 
-            # 1-year return
+            # 1-year return (~252 trading days)
             if len(history) >= 252:
                 year_ago_price = float(history["Close"].iloc[-252])
                 returns["one_year"] = float(round(((current_price - year_ago_price) / year_ago_price) * 100, 2))
+
+            # 3-month return (~63 trading days)
+            if len(history) >= 63:
+                three_month_ago_price = float(history["Close"].iloc[-63])
+                returns["three_month"] = float(round(((current_price - three_month_ago_price) / three_month_ago_price) * 100, 2))
 
             # YTD return
             current_year = datetime.now().year
@@ -175,7 +185,7 @@ class StockFetcher:
                 ytd_start_price = float(ytd_data["Close"].iloc[0])
                 returns["ytd"] = float(round(((current_price - ytd_start_price) / ytd_start_price) * 100, 2))
 
-            # 1-month return
+            # 1-month return (~21 trading days)
             if len(history) >= 21:
                 month_ago_price = float(history["Close"].iloc[-21])
                 returns["one_month"] = float(round(((current_price - month_ago_price) / month_ago_price) * 100, 2))
@@ -252,6 +262,7 @@ class StockFetcher:
             data.name = self._safe_get(info, "longName", self._safe_get(info, "shortName", ticker_symbol))
             data.sector = self._safe_get(info, "sector", "Unknown")
             data.industry = self._safe_get(info, "industry", "Unknown")
+            data.business_summary = self._safe_get(info, "longBusinessSummary", "")
 
             # Market cap (convert to billions)
             market_cap_raw = self._safe_get(info, "marketCap", 0)
@@ -278,6 +289,7 @@ class StockFetcher:
                 # Calculate returns
                 returns = self._calculate_returns(history)
                 data.one_year_return = returns["one_year"]
+                data.three_month_return = returns["three_month"]
                 data.ytd_return = returns["ytd"]
                 data.one_month_return = returns["one_month"]
 
