@@ -29,7 +29,7 @@
                         <span x-text="report?.stocks_analyzed"></span> analyzed
                     </p>
                 </div>
-                <div class="mt-4 md:mt-0 flex space-x-2">
+                <div class="mt-4 md:mt-0 flex flex-wrap gap-2">
                     <button
                         @click="viewMode = 'cards'"
                         :class="viewMode === 'cards' ? 'bg-blue-600' : 'bg-dark-800'"
@@ -44,7 +44,32 @@
                     >
                         Table
                     </button>
+                    <button
+                        @click="generateReport()"
+                        :disabled="generating"
+                        class="px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-green-700 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                        <span x-show="!generating">Generate New Report</span>
+                        <span x-show="generating" class="flex items-center gap-2">
+                            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Generating...
+                        </span>
+                    </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Generation status message -->
+        <div x-show="generateMessage" x-cloak class="mb-6 p-4 rounded-lg bg-blue-900/30 border border-blue-700/50">
+            <div class="flex items-center gap-3">
+                <svg x-show="generating" class="animate-spin h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-blue-300" x-text="generateMessage"></span>
             </div>
         </div>
 
@@ -374,6 +399,8 @@ function reportData() {
         viewMode: 'cards',
         sortColumn: 'rank',
         sortDirection: 'asc',
+        generating: false,
+        generateMessage: null,
 
         async loadLatestReport() {
             try {
@@ -386,6 +413,54 @@ function reportData() {
                 this.error = e.message;
             } finally {
                 this.loading = false;
+            }
+        },
+
+        async generateReport() {
+            if (this.generating) return;
+
+            this.generating = true;
+            this.generateMessage = null;
+
+            try {
+                const response = await fetch('/api/reports/generate-full');
+                const data = await response.json();
+
+                if (data.status === 'started') {
+                    // Show message and poll for completion
+                    this.generateMessage = 'Report generation started. This may take a few minutes...';
+
+                    // Poll every 10 seconds to check if new report is ready
+                    const pollInterval = setInterval(async () => {
+                        try {
+                            const checkResponse = await fetch('/api/reports/latest');
+                            if (checkResponse.ok) {
+                                const newReport = await checkResponse.json();
+                                // Check if this is a newer report
+                                if (!this.report || newReport.id !== this.report.id) {
+                                    this.report = newReport;
+                                    this.generating = false;
+                                    this.generateMessage = null;
+                                    clearInterval(pollInterval);
+                                }
+                            }
+                        } catch (e) {
+                            // Ignore polling errors
+                        }
+                    }, 10000);
+
+                    // Stop polling after 10 minutes max
+                    setTimeout(() => {
+                        clearInterval(pollInterval);
+                        if (this.generating) {
+                            this.generating = false;
+                            this.generateMessage = 'Report generation is taking longer than expected. Refresh the page later.';
+                        }
+                    }, 600000);
+                }
+            } catch (e) {
+                this.generating = false;
+                this.generateMessage = 'Error starting report generation: ' + e.message;
             }
         },
 
