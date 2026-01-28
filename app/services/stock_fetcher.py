@@ -114,7 +114,10 @@ class StockFetcher:
             rs = gain / loss
             rsi = 100 - (100 / (1 + rs))
 
-            return round(rsi.iloc[-1], 2) if not pd.isna(rsi.iloc[-1]) else None
+            result = rsi.iloc[-1]
+            if pd.isna(result):
+                return None
+            return float(round(result, 2))  # Convert numpy to native float
         except Exception:
             return None
 
@@ -132,10 +135,15 @@ class StockFetcher:
             return "micro"
 
     def _safe_get(self, info: dict, key: str, default=None):
-        """Safely get a value from info dict."""
+        """Safely get a value from info dict, converting numpy types to Python natives."""
         try:
             value = info.get(key, default)
-            if value is None or (isinstance(value, float) and (np.isnan(value) or np.isinf(value))):
+            if value is None:
+                return default
+            # Convert numpy types to Python native types
+            if isinstance(value, (np.floating, np.integer)):
+                value = float(value) if isinstance(value, np.floating) else int(value)
+            if isinstance(value, float) and (np.isnan(value) or np.isinf(value)):
                 return default
             return value
         except Exception:
@@ -153,24 +161,24 @@ class StockFetcher:
             if history.empty or "Close" not in history.columns:
                 return returns
 
-            current_price = history["Close"].iloc[-1]
+            current_price = float(history["Close"].iloc[-1])
 
             # 1-year return
             if len(history) >= 252:
-                year_ago_price = history["Close"].iloc[-252]
-                returns["one_year"] = round(((current_price - year_ago_price) / year_ago_price) * 100, 2)
+                year_ago_price = float(history["Close"].iloc[-252])
+                returns["one_year"] = float(round(((current_price - year_ago_price) / year_ago_price) * 100, 2))
 
             # YTD return
             current_year = datetime.now().year
             ytd_data = history[history.index.year == current_year]
             if not ytd_data.empty:
-                ytd_start_price = ytd_data["Close"].iloc[0]
-                returns["ytd"] = round(((current_price - ytd_start_price) / ytd_start_price) * 100, 2)
+                ytd_start_price = float(ytd_data["Close"].iloc[0])
+                returns["ytd"] = float(round(((current_price - ytd_start_price) / ytd_start_price) * 100, 2))
 
             # 1-month return
             if len(history) >= 21:
-                month_ago_price = history["Close"].iloc[-21]
-                returns["one_month"] = round(((current_price - month_ago_price) / month_ago_price) * 100, 2)
+                month_ago_price = float(history["Close"].iloc[-21])
+                returns["one_month"] = float(round(((current_price - month_ago_price) / month_ago_price) * 100, 2))
 
         except Exception as e:
             logger.debug(f"Error calculating returns: {e}")
@@ -259,11 +267,11 @@ class StockFetcher:
             # Using 1y instead of 5y for faster fetching
             history = ticker.history(period="1y")
             if not history.empty:
-                data.all_time_high = round(history["High"].max(), 2)
+                data.all_time_high = float(round(history["High"].max(), 2))
                 if data.all_time_high > 0 and data.current_price > 0:
-                    data.pct_from_ath = round(
+                    data.pct_from_ath = float(round(
                         ((data.all_time_high - data.current_price) / data.all_time_high) * 100, 2
-                    )
+                    ))
 
                 # Calculate RSI
                 data.rsi = self._calculate_rsi(history["Close"])
