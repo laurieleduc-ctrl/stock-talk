@@ -289,7 +289,10 @@ def _format_report(report: DailyReport) -> dict:
     """Format a report with all its stocks for API response."""
     stocks_data = []
 
-    for rs in sorted(report.stocks, key=lambda x: x.rank):
+    # Sort by rank, handling potential None values
+    sorted_stocks = sorted(report.stocks, key=lambda x: getattr(x, 'rank', 999) or 999)
+
+    for rs in sorted_stocks:
         try:
             stock = rs.stock
 
@@ -392,15 +395,15 @@ def _format_report(report: DailyReport) -> dict:
 
     return {
         "id": report.id,
-        "date": report.report_date.isoformat(),
-        "stocks_analyzed": report.total_stocks_analyzed,
-        "stocks_passing_criteria": report.stocks_passing_criteria,
-        "market_summary": report.market_summary,
-        "sp500_change": report.sp500_change,
-        "nasdaq_change": report.nasdaq_change,
+        "date": report.report_date.isoformat() if report.report_date else None,
+        "stocks_analyzed": getattr(report, 'total_stocks_analyzed', 0),
+        "stocks_passing_criteria": getattr(report, 'stocks_passing_criteria', 0),
+        "market_summary": getattr(report, 'market_summary', None),
+        "sp500_change": getattr(report, 'sp500_change', None),
+        "nasdaq_change": getattr(report, 'nasdaq_change', None),
         "tip_of_the_day": {
-            "title": report.tip_of_the_day_title,
-            "content": report.tip_of_the_day_content,
+            "title": getattr(report, 'tip_of_the_day_title', None),
+            "content": getattr(report, 'tip_of_the_day_content', None),
         },
         "sector_breakdown": sector_counts,
         "stocks": stocks_data,
