@@ -90,6 +90,7 @@
                                     results = []; open = false;
                                 }
                             "
+                            @keydown.enter="if (query.trim()) window.location.href = '/stock/' + query.trim().toUpperCase()"
                             @focus="if (results.length) open = true"
                             @click.away="open = false"
                         >
