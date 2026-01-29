@@ -97,6 +97,52 @@
             </div>
         </div>
 
+        <!-- Market Context -->
+        <div x-show="report?.market_summary || report?.market_news?.length" class="bg-dark-900 rounded-lg border border-dark-800 mb-8 overflow-hidden">
+            <!-- Index performance bar -->
+            <div class="flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3 border-b border-dark-800 text-sm">
+                <span class="text-dark-400 font-medium">Markets:</span>
+                <template x-if="report?.sp500_change != null">
+                    <span>
+                        <span class="text-dark-400">S&P 500</span>
+                        <span :class="report.sp500_change >= 0 ? 'text-green-400' : 'text-red-400'" x-text="(report.sp500_change >= 0 ? '+' : '') + report.sp500_change.toFixed(2) + '%'"></span>
+                    </span>
+                </template>
+                <template x-if="report?.nasdaq_change != null">
+                    <span>
+                        <span class="text-dark-400">Nasdaq</span>
+                        <span :class="report.nasdaq_change >= 0 ? 'text-green-400' : 'text-red-400'" x-text="(report.nasdaq_change >= 0 ? '+' : '') + report.nasdaq_change.toFixed(2) + '%'"></span>
+                    </span>
+                </template>
+                <template x-if="report?.dow_change != null">
+                    <span>
+                        <span class="text-dark-400">Dow</span>
+                        <span :class="report.dow_change >= 0 ? 'text-green-400' : 'text-red-400'" x-text="(report.dow_change >= 0 ? '+' : '') + report.dow_change.toFixed(2) + '%'"></span>
+                    </span>
+                </template>
+                <template x-if="report?.vix_level != null">
+                    <span>
+                        <span class="text-dark-400">VIX</span>
+                        <span :class="report.vix_level > 25 ? 'text-red-400' : (report.vix_level < 15 ? 'text-green-400' : 'text-yellow-400')" x-text="report.vix_level.toFixed(1)"></span>
+                    </span>
+                </template>
+            </div>
+            <!-- News headlines -->
+            <div x-show="report?.market_news?.length" class="px-5 py-3">
+                <div class="space-y-2">
+                    <template x-for="(item, idx) in report?.market_news || []" :key="idx">
+                        <div class="flex items-start gap-2 text-sm">
+                            <span class="text-dark-600 mt-0.5 shrink-0">&bull;</span>
+                            <div class="min-w-0">
+                                <a :href="item.url" target="_blank" rel="noopener noreferrer" class="text-dark-200 hover:text-blue-400 transition-colors" x-text="item.title"></a>
+                                <span x-show="item.source" class="text-dark-600 ml-1" x-text="'(' + item.source + ')'"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
         <!-- Sector breakdown -->
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
             <template x-for="(count, sector) in report?.sector_breakdown" :key="sector">

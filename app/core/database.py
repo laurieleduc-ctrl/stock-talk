@@ -26,38 +26,45 @@ def get_db():
         db.close()
 
 
+def _migrate_table(conn, table_name: str, columns: list[tuple[str, str]]):
+    """Add missing columns to a table."""
+    for column_name, column_type in columns:
+        try:
+            result = conn.execute(text(f"""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = '{table_name}' AND column_name = '{column_name}'
+            """))
+            if result.fetchone() is None:
+                logger.info(f"Adding column {column_name} to {table_name} table")
+                conn.execute(text(f"""
+                    ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}
+                """))
+                conn.commit()
+                logger.info(f"Successfully added column {column_name}")
+        except Exception as e:
+            logger.warning(f"Could not add column {column_name}: {e}")
+
+
 def run_migrations():
     """Run database migrations to add missing columns."""
-    # Columns to add to report_stocks table (column_name, type)
-    report_stocks_columns = [
-        ("one_year_return", "FLOAT"),
-        ("three_month_return", "FLOAT"),
-        ("beta", "FLOAT"),
-        ("business_summary", "TEXT"),
-        ("fifty_two_week_high", "FLOAT"),
-        ("fifty_two_week_low", "FLOAT"),
-    ]
-
     with engine.connect() as conn:
-        for column_name, column_type in report_stocks_columns:
-            try:
-                # Check if column exists
-                result = conn.execute(text(f"""
-                    SELECT column_name
-                    FROM information_schema.columns
-                    WHERE table_name = 'report_stocks' AND column_name = '{column_name}'
-                """))
-                if result.fetchone() is None:
-                    # Column doesn't exist, add it
-                    logger.info(f"Adding column {column_name} to report_stocks table")
-                    conn.execute(text(f"""
-                        ALTER TABLE report_stocks ADD COLUMN {column_name} {column_type}
-                    """))
-                    conn.commit()
-                    logger.info(f"Successfully added column {column_name}")
-            except Exception as e:
-                logger.warning(f"Could not add column {column_name}: {e}")
-                # Continue with other columns even if one fails
+        # report_stocks table
+        _migrate_table(conn, "report_stocks", [
+            ("one_year_return", "FLOAT"),
+            ("three_month_return", "FLOAT"),
+            ("beta", "FLOAT"),
+            ("business_summary", "TEXT"),
+            ("fifty_two_week_high", "FLOAT"),
+            ("fifty_two_week_low", "FLOAT"),
+        ])
+
+        # daily_reports table
+        _migrate_table(conn, "daily_reports", [
+            ("dow_change", "FLOAT"),
+            ("vix_level", "FLOAT"),
+            ("market_news", "JSONB"),
+        ])
 
 
 def init_db():

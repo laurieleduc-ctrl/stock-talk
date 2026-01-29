@@ -16,6 +16,7 @@ from app.models import DailyReport, ReportStock, Stock, StockMention, StockMetri
 from app.services.reddit_scraper import reddit_scraper, StockMentionData, get_fallback_mentions
 from app.services.stock_fetcher import stock_fetcher, StockData
 from app.services.finnhub_client import finnhub_client
+from app.services.market_context import fetch_market_context
 
 logger = logging.getLogger(__name__)
 
@@ -569,12 +570,26 @@ class ReportGenerator:
         # Select random tip of the day
         tip = random.choice(INVESTMENT_TIPS)
 
+        # Fetch market context (index performance + news)
+        logger.info("Fetching market context...")
+        try:
+            market_ctx = fetch_market_context()
+        except Exception as e:
+            logger.warning(f"Failed to fetch market context: {e}")
+            market_ctx = None
+
         report = DailyReport(
             report_date=report_date,
             total_stocks_analyzed=len(qualifying_tickers),
             stocks_passing_criteria=len(analyzed_stocks),
             tip_of_the_day_title=tip["title"],
             tip_of_the_day_content=tip["content"],
+            market_summary=market_ctx.market_summary if market_ctx else None,
+            sp500_change=market_ctx.sp500_change if market_ctx else None,
+            nasdaq_change=market_ctx.nasdaq_change if market_ctx else None,
+            dow_change=market_ctx.dow_change if market_ctx else None,
+            vix_level=market_ctx.vix_level if market_ctx else None,
+            market_news=market_ctx.market_news if market_ctx else None,
         )
         self.db.add(report)
         self.db.flush()

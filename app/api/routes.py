@@ -511,6 +511,9 @@ def _format_report(report: DailyReport) -> dict:
         "market_summary": getattr(report, 'market_summary', None),
         "sp500_change": getattr(report, 'sp500_change', None),
         "nasdaq_change": getattr(report, 'nasdaq_change', None),
+        "dow_change": getattr(report, 'dow_change', None),
+        "vix_level": getattr(report, 'vix_level', None),
+        "market_news": getattr(report, 'market_news', None) or [],
         "tip_of_the_day": {
             "title": getattr(report, 'tip_of_the_day_title', None),
             "content": getattr(report, 'tip_of_the_day_content', None),

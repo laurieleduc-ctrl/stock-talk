@@ -17,6 +17,9 @@ class DailyReport(Base):
     market_summary = Column(Text)  # Brief market overview
     sp500_change = Column(Float)
     nasdaq_change = Column(Float)
+    dow_change = Column(Float)
+    vix_level = Column(Float)
+    market_news = Column(JSON)  # [{title, summary, source, url}]
 
     # Report metadata
     total_stocks_analyzed = Column(Integer)
