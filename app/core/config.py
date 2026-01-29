@@ -27,7 +27,7 @@ class Settings:
 
     # Stock Analysis Settings
     TOP_STOCKS_COUNT: int = 20
-    DARK_HORSE_COUNT: int = 2
+    DARK_HORSE_COUNT: int = 5
     MIN_REDDIT_MENTIONS: int = 5  # Minimum mentions to be considered
     DARK_HORSE_MAX_MENTIONS: int = 50  # Max mentions to qualify as dark horse
     DARK_HORSE_MAX_INSTITUTIONAL: float = 0.40  # Max institutional ownership for dark horse
