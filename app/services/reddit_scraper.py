@@ -423,18 +423,68 @@ FALLBACK_TICKERS = [
 FALLBACK_TICKERS = list(dict.fromkeys(FALLBACK_TICKERS))
 
 
+def get_watchlist_tickers() -> list[str]:
+    """Get tickers from user's watchlist in the database."""
+    try:
+        from app.core.database import SessionLocal
+        from app.models import WatchlistStock
+
+        db = SessionLocal()
+        try:
+            watchlist_stocks = (
+                db.query(WatchlistStock)
+                .order_by(WatchlistStock.priority.desc())
+                .all()
+            )
+            tickers = [s.ticker for s in watchlist_stocks]
+            if tickers:
+                logger.info(f"Added {len(tickers)} watchlist stocks to analysis: {', '.join(tickers)}")
+            return tickers
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning(f"Could not fetch watchlist stocks: {e}")
+        return []
+
+
 def get_fallback_mentions() -> dict[str, dict]:
     """
     Generate fallback stock data when Reddit API is unavailable.
     Returns simulated mention data for popular stocks.
+    Includes user's watchlist stocks with priority.
     """
     import random
 
     logger.info("Using fallback stock list (Reddit API not configured)")
 
+    # Get watchlist stocks first (they get priority)
+    watchlist_tickers = get_watchlist_tickers()
+
+    # Combine watchlist (priority) + fallback tickers, removing duplicates
+    all_tickers = watchlist_tickers + [t for t in FALLBACK_TICKERS if t not in watchlist_tickers]
+
     aggregated = {}
+
+    # Add watchlist stocks with higher mention counts to ensure they're analyzed
+    for ticker in watchlist_tickers:
+        mentions = random.randint(100, 200)  # Higher mentions for watchlist
+        sentiment = round(random.uniform(0.0, 0.5), 3)  # Slightly positive bias
+
+        aggregated[ticker] = {
+            "total_mentions": mentions,
+            "subreddits": {
+                "stocks": {"count": mentions // 2, "sentiment": sentiment},
+                "wallstreetbets": {"count": mentions // 2, "sentiment": sentiment},
+            },
+            "avg_sentiment": sentiment,
+            "is_watchlist": True,
+        }
+
+    # Add fallback tickers
     for ticker in FALLBACK_TICKERS:
-        # Simulate realistic mention counts and sentiment
+        if ticker in aggregated:
+            continue  # Skip if already added from watchlist
+
         mentions = random.randint(10, 150)
         sentiment = round(random.uniform(-0.3, 0.5), 3)
 

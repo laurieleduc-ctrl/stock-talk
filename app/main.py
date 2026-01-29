@@ -96,6 +96,12 @@ async def glossary_page(request: Request):
     return templates.TemplateResponse("glossary.html", {"request": request})
 
 
+@app.get("/watchlist", response_class=HTMLResponse)
+async def watchlist_page(request: Request):
+    """Render the watchlist management page."""
+    return templates.TemplateResponse("watchlist.html", {"request": request})
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""

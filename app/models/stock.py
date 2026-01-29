@@ -127,3 +127,18 @@ class StockMetrics(Base):
 
     def __repr__(self):
         return f"<StockMetrics {self.stock_id} @ {self.date}>"
+
+
+class WatchlistStock(Base):
+    """User's custom watchlist stocks to always include in analysis."""
+
+    __tablename__ = "watchlist_stocks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ticker = Column(String(10), unique=True, nullable=False, index=True)
+    notes = Column(Text)  # Optional notes about why it's on the watchlist
+    priority = Column(Integer, default=0)  # Higher priority = analyzed first
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<WatchlistStock {self.ticker}>"

@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import settings
 from app.core.database import get_db, SessionLocal
-from app.models import DailyReport, ReportStock, Stock
+from app.models import DailyReport, ReportStock, Stock, WatchlistStock
 from app.services.report_generator import generate_daily_report
 
 router = APIRouter()
@@ -282,6 +282,116 @@ def get_stats(db: Session = Depends(get_db)):
             {"ticker": t[0], "name": t[1], "appearances": t[2]} for t in top_stocks
         ],
         "sector_distribution": {s[0]: s[1] for s in sector_dist if s[0]},
+    }
+
+
+# ==================== WATCHLIST ENDPOINTS ====================
+
+
+@router.get("/watchlist")
+def get_watchlist(db: Session = Depends(get_db)):
+    """Get all stocks in the watchlist."""
+    stocks = (
+        db.query(WatchlistStock)
+        .order_by(WatchlistStock.priority.desc(), WatchlistStock.created_at.desc())
+        .all()
+    )
+    return {
+        "stocks": [
+            {
+                "id": s.id,
+                "ticker": s.ticker,
+                "notes": s.notes,
+                "priority": s.priority,
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+            }
+            for s in stocks
+        ],
+        "count": len(stocks),
+    }
+
+
+@router.post("/watchlist")
+def add_to_watchlist(
+    ticker: str = Query(..., min_length=1, max_length=10),
+    notes: Optional[str] = Query(default=None),
+    priority: int = Query(default=0),
+    db: Session = Depends(get_db),
+):
+    """Add a stock to the watchlist."""
+    ticker = ticker.upper().strip()
+
+    # Check if already exists
+    existing = db.query(WatchlistStock).filter(WatchlistStock.ticker == ticker).first()
+    if existing:
+        raise HTTPException(status_code=400, detail=f"{ticker} is already on the watchlist")
+
+    watchlist_stock = WatchlistStock(
+        ticker=ticker,
+        notes=notes,
+        priority=priority,
+    )
+    db.add(watchlist_stock)
+    db.commit()
+    db.refresh(watchlist_stock)
+
+    return {
+        "status": "success",
+        "message": f"{ticker} added to watchlist",
+        "stock": {
+            "id": watchlist_stock.id,
+            "ticker": watchlist_stock.ticker,
+            "notes": watchlist_stock.notes,
+            "priority": watchlist_stock.priority,
+        },
+    }
+
+
+@router.delete("/watchlist/{ticker}")
+def remove_from_watchlist(ticker: str, db: Session = Depends(get_db)):
+    """Remove a stock from the watchlist."""
+    ticker = ticker.upper().strip()
+
+    stock = db.query(WatchlistStock).filter(WatchlistStock.ticker == ticker).first()
+    if not stock:
+        raise HTTPException(status_code=404, detail=f"{ticker} not found in watchlist")
+
+    db.delete(stock)
+    db.commit()
+
+    return {"status": "success", "message": f"{ticker} removed from watchlist"}
+
+
+@router.put("/watchlist/{ticker}")
+def update_watchlist_stock(
+    ticker: str,
+    notes: Optional[str] = Query(default=None),
+    priority: Optional[int] = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """Update a stock's notes or priority in the watchlist."""
+    ticker = ticker.upper().strip()
+
+    stock = db.query(WatchlistStock).filter(WatchlistStock.ticker == ticker).first()
+    if not stock:
+        raise HTTPException(status_code=404, detail=f"{ticker} not found in watchlist")
+
+    if notes is not None:
+        stock.notes = notes
+    if priority is not None:
+        stock.priority = priority
+
+    db.commit()
+    db.refresh(stock)
+
+    return {
+        "status": "success",
+        "stock": {
+            "id": stock.id,
+            "ticker": stock.ticker,
+            "notes": stock.notes,
+            "priority": stock.priority,
+        },
     }
 
 
