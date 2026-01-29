@@ -167,7 +167,7 @@
                                 <span x-show="stock.is_dark_horse" class="ml-1 cursor-help" :title="stock.dark_horse_reasons?.join('; ') || 'Under-the-radar opportunity'">🐴</span>
                             </td>
                             <td class="px-4 py-3">
-                                <div class="font-semibold text-white" x-text="stock.ticker"></div>
+                                <div class="font-semibold text-white cursor-help" :title="stock.business_summary || stock.name" x-text="stock.ticker"></div>
                                 <div class="text-dark-500 text-xs truncate max-w-[150px] cursor-help" :title="stock.business_summary || stock.name" x-text="stock.name"></div>
                             </td>
                             <td class="px-4 py-3 text-right font-mono" x-text="'$' + stock.price?.toFixed(2)"></td>
