@@ -274,92 +274,233 @@ class ReportGenerator:
         return bullish, bearish, neutral
 
     def _generate_buy_case(self, stock: StockData, reddit_mentions: int, sentiment: float) -> str:
-        """Generate a plain-English explanation of why this stock might be a buy."""
-        points = []
+        """Generate a data-specific explanation of why this stock might be a buy.
+        Points are weighted by conviction strength and sorted by importance."""
+        # (weight, text) — higher weight = stronger signal
+        weighted_points: list[tuple[int, str]] = []
 
-        # Price drop
-        if stock.pct_from_ath and stock.pct_from_ath >= 20:
-            points.append(f"Trading {stock.pct_from_ath:.0f}% below its all-time high, offering a potential discount entry")
-
-        # RSI
-        if stock.rsi and stock.rsi < 30:
-            points.append(f"RSI at {stock.rsi:.0f} indicates oversold conditions—the selling may be overdone")
-
-        # Fundamentals
-        if stock.free_cash_flow and stock.free_cash_flow > 0:
-            points.append(f"Generating ${stock.free_cash_flow:.1f}B in free cash flow, showing real financial strength")
-
-        if stock.debt_to_equity and stock.debt_to_equity < 0.5:
-            points.append("Low debt levels provide financial flexibility and lower risk")
-
+        # --- Valuation signals ---
         if stock.peg_ratio and stock.peg_ratio < 1:
-            points.append(f"PEG ratio of {stock.peg_ratio:.2f} suggests you're getting growth at a reasonable price")
+            w = 90 if stock.peg_ratio < 0.5 else 75
+            weighted_points.append((w, f"PEG of {stock.peg_ratio:.2f} suggests earnings growth outpaces the price—a classic value signal"))
 
-        # Insider activity
+        if stock.pe_ratio and stock.forward_pe:
+            if stock.forward_pe < stock.pe_ratio * 0.8:
+                improvement = round((1 - stock.forward_pe / stock.pe_ratio) * 100)
+                weighted_points.append((70, f"Forward P/E ({stock.forward_pe:.1f}) is {improvement}% lower than trailing ({stock.pe_ratio:.1f}), pointing to accelerating earnings"))
+
+        if stock.pe_ratio and stock.pe_ratio < 12:
+            weighted_points.append((65, f"Trailing P/E of {stock.pe_ratio:.1f} is well below the market average, pricing in little growth"))
+
+        if stock.pb_ratio and stock.pb_ratio < 1.0:
+            weighted_points.append((60, f"Price-to-book of {stock.pb_ratio:.2f} means the market values it below its net assets"))
+
+        # --- Price action signals ---
+        if stock.pct_from_ath and stock.pct_from_ath >= 30:
+            weighted_points.append((80, f"Trading {stock.pct_from_ath:.0f}% below its all-time high—if fundamentals are intact, this is a deep discount"))
+        elif stock.pct_from_ath and stock.pct_from_ath >= 20:
+            weighted_points.append((60, f"Down {stock.pct_from_ath:.0f}% from its all-time high, offering a potential discount entry"))
+
+        if stock.rsi and stock.rsi < 25:
+            weighted_points.append((85, f"RSI at {stock.rsi:.0f} is deeply oversold—selling pressure may be exhausted"))
+        elif stock.rsi and stock.rsi < 30:
+            weighted_points.append((65, f"RSI at {stock.rsi:.0f} suggests oversold conditions"))
+
+        if stock.fifty_two_week_low and stock.current_price and stock.fifty_two_week_low > 0:
+            pct_above_low = ((stock.current_price - stock.fifty_two_week_low) / stock.fifty_two_week_low) * 100
+            if pct_above_low < 10:
+                weighted_points.append((55, f"Only {pct_above_low:.0f}% above its 52-week low of ${stock.fifty_two_week_low:.2f}—near potential support"))
+
+        # --- Financial strength ---
+        if stock.free_cash_flow and stock.free_cash_flow > 0:
+            if stock.market_cap and stock.market_cap > 0:
+                fcf_yield = (stock.free_cash_flow / stock.market_cap) * 100
+                if fcf_yield > 5:
+                    weighted_points.append((80, f"Free cash flow yield of {fcf_yield:.1f}% (${stock.free_cash_flow:.1f}B FCF on ${stock.market_cap:.0f}B cap)—generating strong cash relative to price"))
+                else:
+                    weighted_points.append((55, f"Generating ${stock.free_cash_flow:.1f}B in free cash flow, demonstrating real profitability"))
+            else:
+                weighted_points.append((55, f"Generating ${stock.free_cash_flow:.1f}B in free cash flow"))
+
+        if stock.profit_margin and stock.profit_margin > 20:
+            weighted_points.append((50, f"Profit margin of {stock.profit_margin:.0f}% indicates pricing power and operational efficiency"))
+
+        if stock.debt_to_equity is not None and stock.debt_to_equity < 0.3:
+            weighted_points.append((55, f"Very low debt (D/E {stock.debt_to_equity:.2f}) gives flexibility to invest, acquire, or weather downturns"))
+        elif stock.debt_to_equity is not None and 0 < stock.debt_to_equity < 0.5:
+            weighted_points.append((40, f"Manageable debt levels (D/E {stock.debt_to_equity:.2f}) provide financial flexibility"))
+
+        # --- Insider & institutional signals ---
         recent_buys = [a for a in stock.insider_activity if a.get("type") == "buy"]
         if recent_buys:
             total_value = sum(a.get("value", 0) for a in recent_buys)
-            if total_value > 0:
-                points.append(f"Insiders have recently bought ${total_value/1e6:.1f}M worth—they're betting on the company")
+            if total_value > 1_000_000:
+                weighted_points.append((85, f"Insiders bought ${total_value/1e6:.1f}M recently—executives putting their own money on the line"))
+            elif total_value > 0:
+                weighted_points.append((65, f"Recent insider buying worth ${total_value/1e3:.0f}K signals management confidence"))
 
-        # Analyst upside
-        if stock.target_price_mean and stock.current_price:
+        # --- Analyst consensus ---
+        if stock.target_price_mean and stock.current_price and stock.current_price > 0:
             upside = ((stock.target_price_mean - stock.current_price) / stock.current_price) * 100
-            if upside > 20:
-                points.append(f"Analysts see {upside:.0f}% upside to their average price target")
+            if upside > 40 and stock.analyst_count and stock.analyst_count >= 10:
+                weighted_points.append((80, f"{stock.analyst_count} analysts see {upside:.0f}% upside to ${stock.target_price_mean:.0f}—strong Wall Street consensus"))
+            elif upside > 20 and stock.analyst_count and stock.analyst_count >= 5:
+                weighted_points.append((60, f"Analysts project {upside:.0f}% upside (target ${stock.target_price_mean:.0f}, {stock.analyst_count} analysts)"))
+            elif upside > 20:
+                weighted_points.append((45, f"Analyst target of ${stock.target_price_mean:.0f} implies {upside:.0f}% upside"))
 
-        # Reddit sentiment
-        if sentiment > 0.3:
-            points.append("Reddit sentiment is notably bullish")
+        # --- Dividend ---
+        if stock.dividend_yield and stock.dividend_yield > 3:
+            weighted_points.append((50, f"Dividend yield of {stock.dividend_yield:.1f}% provides income while you wait for price recovery"))
+
+        # --- Momentum recovery ---
+        if stock.three_month_return and stock.one_year_return:
+            if stock.three_month_return > 10 and stock.one_year_return < -10:
+                weighted_points.append((60, f"Up {stock.three_month_return:.0f}% in 3 months after being down {abs(stock.one_year_return):.0f}% over the year—early turnaround signs"))
+
+        # --- Reddit sentiment ---
+        if sentiment > 0.4:
+            weighted_points.append((40, f"Reddit sentiment is strongly bullish ({sentiment:.2f} score)"))
+        elif sentiment > 0.3:
+            weighted_points.append((30, "Positive Reddit sentiment suggests retail investor interest"))
+
+        # Sort by weight descending, take top 4
+        weighted_points.sort(key=lambda x: x[0], reverse=True)
+        points = [text for _, text in weighted_points[:4]]
 
         if not points:
-            points.append("Shows potential value characteristics worth investigating further")
+            # Build something specific even when signals are weak
+            parts = []
+            if stock.industry and stock.industry != "Unknown":
+                parts.append(f"{stock.name} operates in {stock.industry}")
+            elif stock.sector and stock.sector != "Unknown":
+                parts.append(f"{stock.name} operates in the {stock.sector} sector")
+            if stock.market_cap:
+                parts.append(f"with a ${stock.market_cap:.0f}B market cap")
+            if stock.pct_from_ath:
+                parts.append(f"trading {stock.pct_from_ath:.0f}% off highs")
+            points = [", ".join(parts) + "—worth monitoring for a clearer entry signal" if parts
+                      else f"{stock.name} has limited data signals right now; review fundamentals before acting"]
 
-        return " ".join(points[:4]) + "."  # Limit to 4 points
+        return " ".join(points) + "."
 
     def _generate_risk_factors(self, stock: StockData) -> list[str]:
-        """Generate plain-English risk factors."""
-        risks = []
+        """Generate specific, company-level risk factors weighted by severity.
+        Each risk includes concrete data and is prioritized by impact x likelihood."""
+        # (severity, text) — higher severity = more important risk
+        weighted_risks: list[tuple[int, str]] = []
 
-        # Earnings timing
+        # --- Earnings timing (high impact, certain) ---
         if stock.next_earnings_date:
             days_until = (stock.next_earnings_date - datetime.now()).days
-            if 0 < days_until <= 14:
-                risks.append(f"Earnings report in {days_until} days—expect potential price swings")
+            if 0 < days_until <= 7:
+                weighted_risks.append((95, f"Earnings in {days_until} day{'s' if days_until != 1 else ''}—a miss could trigger a sharp selloff"))
+            elif 7 < days_until <= 14:
+                weighted_risks.append((70, f"Earnings report in {days_until} days. Expect elevated volatility; consider waiting for results"))
 
-        # High debt
-        if stock.debt_to_equity and stock.debt_to_equity > 1.5:
-            risks.append("High debt levels could pressure the company if conditions worsen")
+        # --- Debt burden ---
+        if stock.debt_to_equity and stock.debt_to_equity > 3.0:
+            weighted_risks.append((90, f"D/E of {stock.debt_to_equity:.1f} is dangerously high—rising rates or a revenue slowdown could threaten solvency"))
+        elif stock.debt_to_equity and stock.debt_to_equity > 2.0:
+            weighted_risks.append((75, f"Heavy debt load (D/E {stock.debt_to_equity:.1f}) limits flexibility. Interest payments consume cash that could fund growth"))
+        elif stock.debt_to_equity and stock.debt_to_equity > 1.5:
+            weighted_risks.append((55, f"D/E of {stock.debt_to_equity:.1f} is above average—manageable now, but adds pressure if earnings dip"))
 
-        # Negative cash flow
-        if stock.free_cash_flow and stock.free_cash_flow < 0:
-            risks.append("Burning cash—needs to improve profitability or raise capital")
+        # --- Cash burn ---
+        if stock.free_cash_flow and stock.free_cash_flow < -1.0:
+            weighted_risks.append((90, f"Burning ${abs(stock.free_cash_flow):.1f}B in cash annually—may need to raise capital through dilutive offerings or more debt"))
+        elif stock.free_cash_flow and stock.free_cash_flow < 0:
+            weighted_risks.append((70, f"Negative free cash flow (${stock.free_cash_flow:.1f}B)—spending more than it earns, needs a path to profitability"))
 
-        # High short interest
-        if stock.short_interest and stock.short_interest > 15:
-            risks.append(f"{stock.short_interest:.1f}% of shares are sold short—many investors are betting against it")
+        # --- Negative profit margins ---
+        if stock.profit_margin is not None and stock.profit_margin < -10:
+            weighted_risks.append((80, f"Profit margin of {stock.profit_margin:.0f}% means {stock.ticker} loses money on every dollar of revenue"))
+        elif stock.profit_margin is not None and stock.profit_margin < 0:
+            weighted_risks.append((60, f"Operating at a loss ({stock.profit_margin:.1f}% margin)—revenue growth needs to outpace costs"))
 
-        # Price momentum
-        if stock.one_year_return and stock.one_year_return < -40:
-            risks.append("Down significantly over the past year—could continue falling")
+        # --- Price decline momentum ---
+        if stock.one_year_return and stock.three_month_return:
+            if stock.one_year_return < -50 and stock.three_month_return < -20:
+                weighted_risks.append((90, f"Down {abs(stock.one_year_return):.0f}% this year and still falling ({stock.three_month_return:+.0f}% last 3 months)—downtrend is accelerating"))
+            elif stock.one_year_return < -40:
+                weighted_risks.append((75, f"Down {abs(stock.one_year_return):.0f}% over the past year—steep decline may reflect structural issues, not just a dip"))
+            elif stock.one_year_return < -25 and stock.three_month_return < 0:
+                weighted_risks.append((65, f"Down {abs(stock.one_year_return):.0f}% this year with no recovery ({stock.three_month_return:+.0f}% last quarter)—momentum still negative"))
+        elif stock.one_year_return and stock.one_year_return < -40:
+            weighted_risks.append((70, f"Lost {abs(stock.one_year_return):.0f}% over the past year—significant shareholder value destruction"))
 
-        # Low analyst coverage
-        if stock.analyst_count and stock.analyst_count < 5:
-            risks.append("Limited analyst coverage means less scrutiny and research available")
+        # --- Short interest ---
+        if stock.short_interest and stock.short_interest > 25:
+            weighted_risks.append((85, f"{stock.short_interest:.0f}% short interest is extreme—hedge funds are aggressively betting against {stock.ticker}"))
+        elif stock.short_interest and stock.short_interest > 15:
+            weighted_risks.append((65, f"{stock.short_interest:.1f}% short interest—a significant number of professionals are betting on further declines"))
+        elif stock.short_interest and stock.short_interest > 10:
+            weighted_risks.append((45, f"Moderate short interest ({stock.short_interest:.1f}%)—some bearish positioning worth noting"))
 
-        # High beta
-        if stock.beta and stock.beta > 1.5:
-            risks.append(f"High volatility (beta {stock.beta:.1f})—expect bigger swings than the market")
+        # --- Valuation still stretched ---
+        if stock.pe_ratio and stock.pe_ratio > 50:
+            weighted_risks.append((70, f"P/E of {stock.pe_ratio:.0f} requires exceptional growth to justify—any earnings miss could trigger a re-rating"))
+        elif stock.pe_ratio and stock.pe_ratio > 35:
+            weighted_risks.append((50, f"P/E of {stock.pe_ratio:.0f} prices in significant growth. A guidance cut could hurt"))
 
-        # Small cap
-        if stock.market_cap_category in ["small", "micro"]:
-            risks.append("Smaller company with less liquidity and potentially higher risk")
+        # --- Volatility ---
+        if stock.beta and stock.beta > 2.0:
+            weighted_risks.append((65, f"Beta of {stock.beta:.1f}—a 5% market drop could mean ~{stock.beta * 5:.0f}% hit for {stock.ticker}"))
+        elif stock.beta and stock.beta > 1.5:
+            weighted_risks.append((45, f"Elevated volatility (beta {stock.beta:.1f})—swings amplified vs. the broader market"))
 
-        # Add generic risk if none found
+        # --- Small/micro cap ---
+        if stock.market_cap_category == "micro" and stock.market_cap:
+            weighted_risks.append((70, f"Micro-cap (${stock.market_cap:.1f}B) with likely thin volume—wide spreads make entry/exit costly"))
+        elif stock.market_cap_category == "small" and stock.market_cap:
+            weighted_risks.append((50, f"Small-cap (${stock.market_cap:.1f}B)—more vulnerable to slowdowns and less institutional support"))
+
+        # --- Analyst skepticism ---
+        if stock.analyst_rating and stock.analyst_rating.lower() in ["sell", "strong sell", "underperform"]:
+            count_str = f" ({stock.analyst_count} analysts)" if stock.analyst_count else ""
+            weighted_risks.append((75, f"Analyst consensus is \"{stock.analyst_rating}\"{count_str}—Wall Street sees more downside"))
+        elif stock.analyst_count and stock.analyst_count < 3 and stock.market_cap and stock.market_cap < 5:
+            weighted_risks.append((50, f"Only {stock.analyst_count} analyst{'s' if stock.analyst_count != 1 else ''} cover {stock.ticker}—low scrutiny may hide risks"))
+
+        # --- Analyst target implies downside ---
+        if stock.target_price_mean and stock.current_price and stock.current_price > 0:
+            upside = ((stock.target_price_mean - stock.current_price) / stock.current_price) * 100
+            if upside < -10:
+                weighted_risks.append((80, f"Avg analyst target ${stock.target_price_mean:.0f} implies {abs(upside):.0f}% downside from current ${stock.current_price:.2f}"))
+
+        # --- Insider selling ---
+        recent_sells = [a for a in stock.insider_activity if a.get("type") == "sell"]
+        recent_buys = [a for a in stock.insider_activity if a.get("type") == "buy"]
+        if recent_sells and len(recent_sells) > len(recent_buys) + 1:
+            total_sold = sum(a.get("value", 0) for a in recent_sells)
+            if total_sold > 1_000_000:
+                weighted_risks.append((70, f"Insiders net selling recently (${total_sold/1e6:.1f}M sold)—executives reducing their own exposure"))
+
+        # --- RSI overbought ---
+        if stock.rsi and stock.rsi > 75:
+            weighted_risks.append((55, f"RSI at {stock.rsi:.0f} is overbought—recent rally may be overextended, pullback likely"))
+
+        # --- Institutional crowding ---
+        if stock.institutional_ownership and stock.institutional_ownership > 95:
+            weighted_risks.append((45, f"{stock.institutional_ownership:.0f}% institutional ownership—any institutional selling would create outsized downward pressure"))
+
+        # Sort by severity descending, take top 5
+        weighted_risks.sort(key=lambda x: x[0], reverse=True)
+        risks = [text for _, text in weighted_risks[:5]]
+
+        # If no specific risks found, build company-specific context instead of generic message
         if not risks:
-            risks.append("Standard market risks apply—always do your own research")
+            metrics = []
+            if stock.pe_ratio:
+                metrics.append(f"P/E {stock.pe_ratio:.1f}")
+            if stock.debt_to_equity is not None:
+                metrics.append(f"D/E {stock.debt_to_equity:.1f}")
+            if stock.beta:
+                metrics.append(f"beta {stock.beta:.1f}")
+            metrics_str = ", ".join(metrics) if metrics else "limited data"
+            risks = [f"{stock.name} shows no major red flags ({metrics_str}), but verify with recent filings and news before acting"]
 
-        return risks[:5]  # Limit to 5 risks
+        return risks
 
     def _identify_dark_horses(self, analyzed: list[AnalyzedStock]) -> list[AnalyzedStock]:
         """Identify dark horse candidates from analyzed stocks."""
