@@ -59,6 +59,8 @@ class StockData:
     # Momentum & Technical
     rsi: Optional[float] = None
     beta: Optional[float] = None
+    sma_50: Optional[float] = None
+    sma_200: Optional[float] = None
     avg_volume: float = 0.0
     recent_volume: float = 0.0
 
@@ -285,6 +287,12 @@ class StockFetcher:
 
                 # Calculate RSI
                 data.rsi = self._calculate_rsi(history["Close"])
+
+                # Calculate moving averages
+                if len(history) >= 50:
+                    data.sma_50 = round(float(history["Close"].iloc[-50:].mean()), 2)
+                if len(history) >= 200:
+                    data.sma_200 = round(float(history["Close"].iloc[-200:].mean()), 2)
 
                 # Calculate returns
                 returns = self._calculate_returns(history)

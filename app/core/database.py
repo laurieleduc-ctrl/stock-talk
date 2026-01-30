@@ -57,6 +57,22 @@ def run_migrations():
             ("business_summary", "TEXT"),
             ("fifty_two_week_high", "FLOAT"),
             ("fifty_two_week_low", "FLOAT"),
+            ("forward_pe", "FLOAT"),
+            ("ps_ratio", "FLOAT"),
+            ("ev_ebitda", "FLOAT"),
+            ("gross_margin", "FLOAT"),
+            ("operating_margin", "FLOAT"),
+            ("current_ratio", "FLOAT"),
+            ("ytd_return", "FLOAT"),
+            ("one_month_return", "FLOAT"),
+            ("earnings_surprise_pct", "FLOAT"),
+            ("insider_ownership", "FLOAT"),
+            ("target_price_low", "FLOAT"),
+            ("target_price_high", "FLOAT"),
+            ("avg_volume", "FLOAT"),
+            ("recent_volume", "FLOAT"),
+            ("sma_50", "FLOAT"),
+            ("sma_200", "FLOAT"),
         ])
 
         # daily_reports table

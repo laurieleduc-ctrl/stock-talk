@@ -49,6 +49,9 @@
                     <h1 class="text-3xl font-bold text-white">Today's Value Picks</h1>
                     <p class="text-dark-400 mt-1">
                         <span x-text="formatDate(report?.date)"></span>
+                        <span x-show="report?.created_at" class="text-dark-500">
+                            • Generated <span x-text="formatTimestamp(report?.created_at)"></span>
+                        </span>
                         • <span x-text="report?.stocks?.length"></span> stocks selected from
                         <span x-text="report?.stocks_analyzed"></span> analyzed
                     </p>
@@ -184,6 +187,9 @@
                         <th @click="sortBy('pe_ratio')" class="px-4 py-3 text-right cursor-pointer hover:text-white transition-colors">
                             <span class="flex items-center justify-end">P/E <span x-show="sortColumn === 'pe_ratio'" x-text="sortDirection === 'asc' ? ' ▲' : ' ▼'" class="ml-1 text-blue-400"></span></span>
                         </th>
+                        <th @click="sortBy('forward_pe')" class="px-4 py-3 text-right cursor-pointer hover:text-white transition-colors hidden lg:table-cell">
+                            <span class="flex items-center justify-end">Fwd P/E <span x-show="sortColumn === 'forward_pe'" x-text="sortDirection === 'asc' ? ' ▲' : ' ▼'" class="ml-1 text-blue-400"></span></span>
+                        </th>
                         <th @click="sortBy('rsi')" class="px-4 py-3 text-right cursor-pointer hover:text-white transition-colors">
                             <span class="flex items-center justify-end">RSI <span x-show="sortColumn === 'rsi'" x-text="sortDirection === 'asc' ? ' ▲' : ' ▼'" class="ml-1 text-blue-400"></span></span>
                         </th>
@@ -221,6 +227,7 @@
                                 <span class="text-red-400" x-text="'-' + stock.pct_from_ath?.toFixed(1) + '%'"></span>
                             </td>
                             <td class="px-4 py-3 text-right" x-text="stock.pe_ratio?.toFixed(1) || 'N/A'"></td>
+                            <td class="px-4 py-3 text-right hidden lg:table-cell" x-text="stock.forward_pe?.toFixed(1) || 'N/A'"></td>
                             <td class="px-4 py-3 text-right">
                                 <span :class="stock.rsi < 30 ? 'text-green-400' : (stock.rsi > 70 ? 'text-red-400' : '')" x-text="stock.rsi?.toFixed(0) || 'N/A'"></span>
                             </td>
@@ -281,69 +288,128 @@
                         </div>
                     </div>
 
-                    <!-- Metrics grid -->
+                    <!-- Key Metrics grid -->
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                        <!-- P/E Ratio -->
                         <div class="metric-box">
                             <div class="metric-label">P/E Ratio</div>
                             <div class="metric-value" x-text="stock.pe_ratio?.toFixed(1) || 'N/A'"></div>
-                            <div class="metric-help">Price for each $1 of profit</div>
+                            <div class="text-xs text-dark-500">
+                                <span x-show="stock.forward_pe" x-text="'Fwd: ' + stock.forward_pe?.toFixed(1)"></span>
+                                <span x-show="stock.pe_ratio && report?.sector_averages?.[stock.sector]?.pe" class="ml-1" :class="stock.pe_ratio < report.sector_averages[stock.sector].pe ? 'text-green-500' : 'text-red-500'" x-text="stock.pe_ratio < report.sector_averages[stock.sector]?.pe ? '▼ sector' : '▲ sector'"></span>
+                            </div>
                         </div>
-
-                        <!-- P/B Ratio -->
                         <div class="metric-box">
                             <div class="metric-label">P/B Ratio</div>
-                            <div class="metric-value" x-text="stock.pb_ratio?.toFixed(2) || 'N/A'"></div>
-                            <div class="metric-help">Price vs company assets</div>
+                            <div class="metric-value" :class="stock.pb_ratio != null && stock.pb_ratio < 1 ? 'text-green-400' : ''" x-text="stock.pb_ratio?.toFixed(2) || 'N/A'"></div>
+                            <div class="metric-help">Price vs assets</div>
                         </div>
-
-                        <!-- Debt-to-Equity -->
                         <div class="metric-box">
                             <div class="metric-label">Debt/Equity</div>
-                            <div class="metric-value" :class="stock.debt_to_equity < 0.5 ? 'text-green-400' : (stock.debt_to_equity > 1.5 ? 'text-red-400' : '')" x-text="stock.debt_to_equity?.toFixed(2) || 'N/A'"></div>
-                            <div class="metric-help">Lower = less debt risk</div>
+                            <div class="metric-value" :class="stock.debt_to_equity != null ? (stock.debt_to_equity < 0.5 ? 'text-green-400' : (stock.debt_to_equity > 1.5 ? 'text-red-400' : 'text-yellow-400')) : ''" x-text="stock.debt_to_equity?.toFixed(2) || 'N/A'"></div>
+                            <div class="metric-help">Lower = less risk</div>
                         </div>
-
-                        <!-- Free Cash Flow -->
                         <div class="metric-box">
                             <div class="metric-label">Free Cash Flow</div>
-                            <div class="metric-value" :class="stock.free_cash_flow > 0 ? 'text-green-400' : 'text-red-400'" x-text="stock.free_cash_flow ? '$' + stock.free_cash_flow?.toFixed(1) + 'B' : 'N/A'"></div>
-                            <div class="metric-help">Actual cash generated</div>
+                            <div class="metric-value" :class="stock.free_cash_flow != null ? (stock.free_cash_flow > 0 ? 'text-green-400' : 'text-red-400') : ''" x-text="stock.free_cash_flow != null ? '$' + stock.free_cash_flow?.toFixed(1) + 'B' : 'N/A'"></div>
+                            <div class="metric-help">Cash generated</div>
                         </div>
-
-                        <!-- RSI -->
                         <div class="metric-box">
                             <div class="metric-label">RSI</div>
-                            <div class="metric-value" :class="stock.rsi < 30 ? 'text-green-400' : (stock.rsi > 70 ? 'text-red-400' : '')" x-text="stock.rsi?.toFixed(0) || 'N/A'"></div>
-                            <div class="metric-help" x-text="stock.rsi < 30 ? 'Oversold - potential buy' : (stock.rsi > 70 ? 'Overbought' : 'Neutral zone')"></div>
+                            <div class="metric-value" :class="stock.rsi != null ? (stock.rsi < 30 ? 'text-green-400' : (stock.rsi > 70 ? 'text-red-400' : '')) : ''" x-text="stock.rsi?.toFixed(0) || 'N/A'"></div>
+                            <div class="metric-help" x-text="stock.rsi != null ? (stock.rsi < 30 ? 'Oversold' : (stock.rsi > 70 ? 'Overbought' : 'Neutral')) : ''"></div>
                         </div>
-
-                        <!-- 3-Month Return -->
+                        <div class="metric-box">
+                            <div class="metric-label">1M Return</div>
+                            <div class="metric-value" :class="stock.one_month_return != null ? (stock.one_month_return > 0 ? 'text-green-400' : 'text-red-400') : ''" x-text="stock.one_month_return != null ? ((stock.one_month_return > 0 ? '+' : '') + stock.one_month_return?.toFixed(1) + '%') : 'N/A'"></div>
+                        </div>
                         <div class="metric-box">
                             <div class="metric-label">3M Return</div>
-                            <div class="metric-value" :class="stock.three_month_return > 0 ? 'text-green-400' : 'text-red-400'" x-text="stock.three_month_return != null ? ((stock.three_month_return > 0 ? '+' : '') + stock.three_month_return?.toFixed(1) + '%') : 'N/A'"></div>
-                            <div class="metric-help">Performance over 3 months</div>
+                            <div class="metric-value" :class="stock.three_month_return != null ? (stock.three_month_return > 0 ? 'text-green-400' : 'text-red-400') : ''" x-text="stock.three_month_return != null ? ((stock.three_month_return > 0 ? '+' : '') + stock.three_month_return?.toFixed(1) + '%') : 'N/A'"></div>
                         </div>
-
-                        <!-- 1-Year Return -->
                         <div class="metric-box">
                             <div class="metric-label">1Y Return</div>
-                            <div class="metric-value" :class="stock.one_year_return > 0 ? 'text-green-400' : 'text-red-400'" x-text="stock.one_year_return != null ? ((stock.one_year_return > 0 ? '+' : '') + stock.one_year_return?.toFixed(1) + '%') : 'N/A'"></div>
-                            <div class="metric-help">Performance over past year</div>
+                            <div class="metric-value" :class="stock.one_year_return != null ? (stock.one_year_return > 0 ? 'text-green-400' : 'text-red-400') : ''" x-text="stock.one_year_return != null ? ((stock.one_year_return > 0 ? '+' : '') + stock.one_year_return?.toFixed(1) + '%') : 'N/A'"></div>
                         </div>
+                    </div>
 
-                        <!-- Short Interest -->
-                        <div class="metric-box">
-                            <div class="metric-label">Short Interest</div>
-                            <div class="metric-value" :class="stock.short_interest > 20 ? 'text-yellow-400' : ''" x-text="stock.short_interest?.toFixed(1) + '%' || 'N/A'"></div>
-                            <div class="metric-help">% shares bet against</div>
-                        </div>
-
-                        <!-- Dividend -->
-                        <div class="metric-box">
-                            <div class="metric-label">Dividend</div>
-                            <div class="metric-value" x-text="stock.dividend_yield ? stock.dividend_yield?.toFixed(2) + '%' : 'None'"></div>
-                            <div class="metric-help">Annual yield</div>
+                    <!-- Expandable Advanced Metrics -->
+                    <div x-data="{ expanded: false }" class="mb-4">
+                        <button @click="expanded = !expanded" class="flex items-center gap-2 text-sm text-dark-400 hover:text-dark-200 transition-colors mb-2">
+                            <svg :class="expanded ? 'rotate-90' : ''" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            Advanced Metrics
+                        </button>
+                        <div x-show="expanded" x-transition
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div class="metric-box">
+                                    <div class="metric-label">P/S Ratio</div>
+                                    <div class="metric-value" x-text="stock.ps_ratio?.toFixed(1) || 'N/A'"></div>
+                                    <div class="metric-help">Price vs revenue</div>
+                                </div>
+                                <div class="metric-box">
+                                    <div class="metric-label">EV/EBITDA</div>
+                                    <div class="metric-value" :class="stock.ev_ebitda != null ? (stock.ev_ebitda < 10 ? 'text-green-400' : (stock.ev_ebitda > 25 ? 'text-red-400' : '')) : ''" x-text="stock.ev_ebitda?.toFixed(1) || 'N/A'"></div>
+                                    <div class="metric-help">Enterprise value ratio</div>
+                                </div>
+                                <div class="metric-box">
+                                    <div class="metric-label">PEG Ratio</div>
+                                    <div class="metric-value" :class="stock.peg_ratio != null ? (stock.peg_ratio < 1 ? 'text-green-400' : (stock.peg_ratio > 2 ? 'text-red-400' : '')) : ''" x-text="stock.peg_ratio?.toFixed(2) || 'N/A'"></div>
+                                    <div class="metric-help">&lt;1 = undervalued growth</div>
+                                </div>
+                                <div class="metric-box">
+                                    <div class="metric-label">Current Ratio</div>
+                                    <div class="metric-value" :class="stock.current_ratio != null ? (stock.current_ratio > 1.5 ? 'text-green-400' : (stock.current_ratio < 1 ? 'text-red-400' : 'text-yellow-400')) : ''" x-text="stock.current_ratio?.toFixed(2) || 'N/A'"></div>
+                                    <div class="metric-help">Liquidity health</div>
+                                </div>
+                                <div class="metric-box">
+                                    <div class="metric-label">Gross Margin</div>
+                                    <div class="metric-value" :class="stock.gross_margin != null ? (stock.gross_margin > 50 ? 'text-green-400' : (stock.gross_margin < 20 ? 'text-red-400' : '')) : ''" x-text="stock.gross_margin != null ? stock.gross_margin?.toFixed(1) + '%' : 'N/A'"></div>
+                                </div>
+                                <div class="metric-box">
+                                    <div class="metric-label">Operating Margin</div>
+                                    <div class="metric-value" :class="stock.operating_margin != null ? (stock.operating_margin > 20 ? 'text-green-400' : (stock.operating_margin < 0 ? 'text-red-400' : '')) : ''" x-text="stock.operating_margin != null ? stock.operating_margin?.toFixed(1) + '%' : 'N/A'"></div>
+                                </div>
+                                <div class="metric-box">
+                                    <div class="metric-label">Profit Margin</div>
+                                    <div class="metric-value" :class="stock.profit_margin != null ? (stock.profit_margin > 15 ? 'text-green-400' : (stock.profit_margin < 0 ? 'text-red-400' : '')) : ''" x-text="stock.profit_margin != null ? stock.profit_margin?.toFixed(1) + '%' : 'N/A'"></div>
+                                </div>
+                                <div class="metric-box">
+                                    <div class="metric-label">YTD Return</div>
+                                    <div class="metric-value" :class="stock.ytd_return != null ? (stock.ytd_return > 0 ? 'text-green-400' : 'text-red-400') : ''" x-text="stock.ytd_return != null ? ((stock.ytd_return > 0 ? '+' : '') + stock.ytd_return?.toFixed(1) + '%') : 'N/A'"></div>
+                                </div>
+                                <div class="metric-box">
+                                    <div class="metric-label">Short Interest</div>
+                                    <div class="metric-value" :class="stock.short_interest != null ? (stock.short_interest > 20 ? 'text-red-400' : (stock.short_interest > 10 ? 'text-yellow-400' : 'text-green-400')) : ''" x-text="stock.short_interest != null ? stock.short_interest?.toFixed(1) + '%' : 'N/A'"></div>
+                                    <div class="metric-help">% shorted</div>
+                                </div>
+                                <div class="metric-box">
+                                    <div class="metric-label">Dividend</div>
+                                    <div class="metric-value" x-text="stock.dividend_yield ? stock.dividend_yield?.toFixed(2) + '%' : 'None'"></div>
+                                </div>
+                                <div class="metric-box">
+                                    <div class="metric-label">Earnings Surprise</div>
+                                    <div class="metric-value" :class="stock.earnings_surprise_pct != null ? (stock.earnings_surprise_pct > 0 ? 'text-green-400' : 'text-red-400') : ''" x-text="stock.earnings_surprise_pct != null ? ((stock.earnings_surprise_pct > 0 ? '+' : '') + stock.earnings_surprise_pct?.toFixed(1) + '%') : 'N/A'"></div>
+                                    <div class="metric-help">Last quarter</div>
+                                </div>
+                                <div class="metric-box">
+                                    <div class="metric-label">50-Day MA</div>
+                                    <div class="metric-value" :class="stock.sma_50 && stock.price ? (stock.price > stock.sma_50 ? 'text-green-400' : 'text-red-400') : ''" x-text="stock.sma_50 ? '$' + stock.sma_50?.toFixed(2) : 'N/A'"></div>
+                                    <div class="metric-help" x-text="stock.sma_50 && stock.price ? (stock.price > stock.sma_50 ? 'Price above' : 'Price below') : ''"></div>
+                                </div>
+                                <div class="metric-box">
+                                    <div class="metric-label">200-Day MA</div>
+                                    <div class="metric-value" :class="stock.sma_200 && stock.price ? (stock.price > stock.sma_200 ? 'text-green-400' : 'text-red-400') : ''" x-text="stock.sma_200 ? '$' + stock.sma_200?.toFixed(2) : 'N/A'"></div>
+                                    <div class="metric-help" x-text="stock.sma_200 && stock.sma_50 ? (stock.sma_50 > stock.sma_200 ? 'Golden cross' : 'Death cross') : ''"></div>
+                                </div>
+                                <div class="metric-box">
+                                    <div class="metric-label">Volume</div>
+                                    <div class="metric-value" :class="stock.avg_volume && stock.recent_volume ? (stock.recent_volume > stock.avg_volume * 1.5 ? 'text-yellow-400' : '') : ''" x-text="stock.recent_volume ? formatVolume(stock.recent_volume) : 'N/A'"></div>
+                                    <div class="metric-help" x-text="stock.avg_volume && stock.recent_volume ? (stock.recent_volume > stock.avg_volume * 1.5 ? 'HIGH vs avg ' + formatVolume(stock.avg_volume) : 'Avg: ' + formatVolume(stock.avg_volume)) : ''"></div>
+                                </div>
+                                <div class="metric-box">
+                                    <div class="metric-label">Insider Own.</div>
+                                    <div class="metric-value" x-text="stock.insider_ownership != null ? stock.insider_ownership?.toFixed(1) + '%' : 'N/A'"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -383,7 +449,8 @@
                         <div x-show="stock.analyst_rating" class="flex items-center space-x-2">
                             <span class="text-dark-500">Analysts:</span>
                             <span class="capitalize" x-text="stock.analyst_rating"></span>
-                            <span x-show="stock.target_upside_pct" class="text-green-400" x-text="'(' + stock.target_upside_pct?.toFixed(0) + '% upside)'"></span>
+                            <span x-show="stock.target_upside_pct" :class="stock.target_upside_pct > 0 ? 'text-green-400' : 'text-red-400'" x-text="'(' + (stock.target_upside_pct > 0 ? '+' : '') + stock.target_upside_pct?.toFixed(0) + '%)'"></span>
+                            <span x-show="stock.target_price_low && stock.target_price_high" class="text-dark-500 text-xs" x-text="'$' + stock.target_price_low?.toFixed(0) + '-$' + stock.target_price_high?.toFixed(0)"></span>
                         </div>
                         <div class="flex items-center space-x-2">
                             <span class="text-dark-500">Signals:</span>
@@ -399,13 +466,16 @@
                         <p class="text-dark-300 text-sm" x-text="stock.buy_case"></p>
                     </div>
 
-                    <!-- Risk factors -->
+                    <!-- Risk factors with severity indicators -->
                     <div class="bg-dark-800/50 rounded-lg p-4 mb-4">
                         <h4 class="text-sm font-semibold text-red-400 mb-2">⚠️ Risks to Know</h4>
-                        <ul class="text-dark-300 text-sm space-y-1">
-                            <template x-for="risk in stock.risk_factors" :key="risk">
-                                <li class="flex items-start">
-                                    <span class="text-dark-600 mr-2">•</span>
+                        <ul class="text-dark-300 text-sm space-y-2">
+                            <template x-for="(risk, idx) in stock.risk_factors" :key="risk">
+                                <li class="flex items-start gap-2">
+                                    <span
+                                        class="mt-0.5 shrink-0 w-2 h-2 rounded-full"
+                                        :class="idx === 0 ? 'bg-red-500' : (idx === 1 ? 'bg-orange-500' : 'bg-yellow-500')"
+                                    ></span>
                                     <span x-text="risk"></span>
                                 </li>
                             </template>
@@ -595,6 +665,30 @@ function reportData() {
                 month: 'long',
                 day: 'numeric'
             });
+        },
+
+        formatTimestamp(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return diffMins + 'm ago';
+            if (diffHours < 24) return diffHours + 'h ago';
+            if (diffDays < 7) return diffDays + 'd ago';
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        },
+
+        formatVolume(vol) {
+            if (!vol) return 'N/A';
+            if (vol >= 1e9) return (vol / 1e9).toFixed(1) + 'B';
+            if (vol >= 1e6) return (vol / 1e6).toFixed(1) + 'M';
+            if (vol >= 1e3) return (vol / 1e3).toFixed(0) + 'K';
+            return vol.toString();
         }
     }
 }

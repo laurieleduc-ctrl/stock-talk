@@ -439,13 +439,19 @@ def _format_report(report: DailyReport) -> dict:
 
                 # Valuation
                 "pe_ratio": getattr(rs, 'pe_ratio', None),
+                "forward_pe": getattr(rs, 'forward_pe', None),
                 "pb_ratio": getattr(rs, 'pb_ratio', None),
                 "peg_ratio": getattr(rs, 'peg_ratio', None),
+                "ps_ratio": getattr(rs, 'ps_ratio', None),
+                "ev_ebitda": getattr(rs, 'ev_ebitda', None),
 
                 # Financial health
                 "debt_to_equity": getattr(rs, 'debt_to_equity', None),
                 "free_cash_flow": getattr(rs, 'free_cash_flow', None),
                 "profit_margin": getattr(rs, 'profit_margin', None),
+                "gross_margin": getattr(rs, 'gross_margin', None),
+                "operating_margin": getattr(rs, 'operating_margin', None),
+                "current_ratio": getattr(rs, 'current_ratio', None),
 
                 # Dividends
                 "dividend_yield": getattr(rs, 'dividend_yield', None),
@@ -455,6 +461,16 @@ def _format_report(report: DailyReport) -> dict:
                 "beta": getattr(rs, 'beta', None),
                 "one_year_return": getattr(rs, 'one_year_return', None),
                 "three_month_return": getattr(rs, 'three_month_return', None),
+                "ytd_return": getattr(rs, 'ytd_return', None),
+                "one_month_return": getattr(rs, 'one_month_return', None),
+
+                # Volume
+                "avg_volume": getattr(rs, 'avg_volume', None),
+                "recent_volume": getattr(rs, 'recent_volume', None),
+
+                # Moving averages
+                "sma_50": getattr(rs, 'sma_50', None),
+                "sma_200": getattr(rs, 'sma_200', None),
 
                 # Company info
                 "business_summary": getattr(rs, 'business_summary', '') or "",
@@ -462,15 +478,19 @@ def _format_report(report: DailyReport) -> dict:
                 # Ownership
                 "short_interest": getattr(rs, 'short_interest', None),
                 "institutional_ownership": getattr(rs, 'institutional_ownership', None),
+                "insider_ownership": getattr(rs, 'insider_ownership', None),
 
                 # Analyst
                 "analyst_rating": getattr(rs, 'analyst_rating', None),
                 "analyst_count": getattr(rs, 'analyst_count', None),
                 "target_price_mean": getattr(rs, 'target_price_mean', None),
+                "target_price_low": getattr(rs, 'target_price_low', None),
+                "target_price_high": getattr(rs, 'target_price_high', None),
                 "target_upside_pct": getattr(rs, 'target_upside_pct', None),
 
                 # Earnings
                 "next_earnings_date": getattr(rs, 'next_earnings_date', None).isoformat() if getattr(rs, 'next_earnings_date', None) else None,
+                "earnings_surprise_pct": getattr(rs, 'earnings_surprise_pct', None),
 
                 # Reddit
                 "reddit_mentions": getattr(rs, 'reddit_mentions_week', None),
@@ -503,9 +523,34 @@ def _format_report(report: DailyReport) -> dict:
         cat = s["sector_category"] or "other"
         sector_counts[cat] = sector_counts.get(cat, 0) + 1
 
+    # Compute sector averages from this report's stocks
+    sector_metrics = {}
+    for s in stocks_data:
+        sector = s.get("sector") or "Unknown"
+        if sector not in sector_metrics:
+            sector_metrics[sector] = {"pe": [], "pb": [], "margin": [], "de": []}
+        if s.get("pe_ratio") is not None:
+            sector_metrics[sector]["pe"].append(s["pe_ratio"])
+        if s.get("pb_ratio") is not None:
+            sector_metrics[sector]["pb"].append(s["pb_ratio"])
+        if s.get("profit_margin") is not None:
+            sector_metrics[sector]["margin"].append(s["profit_margin"])
+        if s.get("debt_to_equity") is not None:
+            sector_metrics[sector]["de"].append(s["debt_to_equity"])
+
+    sector_averages = {}
+    for sector, metrics in sector_metrics.items():
+        avg = {}
+        for key, values in metrics.items():
+            if values:
+                avg[key] = round(sum(values) / len(values), 2)
+        if avg:
+            sector_averages[sector] = avg
+
     return {
         "id": report.id,
         "date": report.report_date.isoformat() if report.report_date else None,
+        "created_at": report.created_at.isoformat() if getattr(report, 'created_at', None) else None,
         "stocks_analyzed": getattr(report, 'total_stocks_analyzed', 0),
         "stocks_passing_criteria": getattr(report, 'stocks_passing_criteria', 0),
         "market_summary": getattr(report, 'market_summary', None),
@@ -519,5 +564,6 @@ def _format_report(report: DailyReport) -> dict:
             "content": getattr(report, 'tip_of_the_day_content', None),
         },
         "sector_breakdown": sector_counts,
+        "sector_averages": sector_averages,
         "stocks": stocks_data,
     }

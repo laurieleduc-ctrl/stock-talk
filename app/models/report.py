@@ -72,6 +72,36 @@ class ReportStock(Base):
     three_month_return = Column(Float)
     beta = Column(Float)
 
+    # Extended valuation
+    forward_pe = Column(Float)
+    ps_ratio = Column(Float)
+    ev_ebitda = Column(Float)
+
+    # Extended financials
+    gross_margin = Column(Float)
+    operating_margin = Column(Float)
+    current_ratio = Column(Float)
+
+    # Extended performance
+    ytd_return = Column(Float)
+    one_month_return = Column(Float)
+    earnings_surprise_pct = Column(Float)
+
+    # Extended ownership
+    insider_ownership = Column(Float)
+
+    # Extended analyst
+    target_price_low = Column(Float)
+    target_price_high = Column(Float)
+
+    # Volume
+    avg_volume = Column(Float)
+    recent_volume = Column(Float)
+
+    # Moving averages
+    sma_50 = Column(Float)
+    sma_200 = Column(Float)
+
     # Company description
     business_summary = Column(Text)
 
