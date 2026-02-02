@@ -592,25 +592,32 @@ class ReportGenerator:
             all_mentions = reddit_scraper.get_all_mentions()
             aggregated = reddit_scraper.aggregate_mentions(all_mentions)
 
-        # Fall back to curated list (fast, reliable)
+        # Fall back to curated list + screener discovery
         if not aggregated:
-            logger.info("Using curated stock list for analysis")
-            aggregated = get_fallback_mentions()
+            # Use screener for worker jobs (large max_stocks), skip for quick web requests
+            use_screener = self.max_stocks >= settings.MAX_STOCKS_WORKER
+            logger.info(f"Building stock list (screener={'on' if use_screener else 'off'})...")
+            aggregated = get_fallback_mentions(use_screener=use_screener)
 
         logger.info(f"Found {len(aggregated)} unique tickers to analyze")
 
-        # Step 2: Filter to stocks with minimum mentions
-        qualifying_tickers = [
-            ticker for ticker, data in aggregated.items()
+        # Step 2: Filter to stocks with minimum mentions and prioritize
+        qualifying = [
+            (ticker, data) for ticker, data in aggregated.items()
             if data["total_mentions"] >= settings.MIN_REDDIT_MENTIONS
         ]
 
-        # Limit tickers based on context (web vs worker)
-        # Web requests have ~30s timeout, worker has no limit
-        max_stocks = getattr(self, 'max_stocks', settings.MAX_STOCKS_WEB)
-        qualifying_tickers = qualifying_tickers[:max_stocks]
+        # Sort by priority: watchlist first, then by mentions (higher = more buzz)
+        qualifying.sort(key=lambda x: (
+            x[1].get("is_watchlist", False),  # Watchlist stocks first
+            x[1]["total_mentions"],
+        ), reverse=True)
 
-        logger.info(f"Analyzing {len(qualifying_tickers)} tickers")
+        # Limit tickers based on context (web vs worker)
+        max_stocks = getattr(self, 'max_stocks', settings.MAX_STOCKS_WEB)
+        qualifying_tickers = [t for t, _ in qualifying[:max_stocks]]
+
+        logger.info(f"Analyzing {len(qualifying_tickers)} tickers (from {len(qualifying)} candidates)")
 
         # Step 3: Fetch stock data for qualifying tickers
         logger.info("Fetching stock data from Yahoo Finance...")

@@ -447,21 +447,21 @@ def get_watchlist_tickers() -> list[str]:
         return []
 
 
-def get_fallback_mentions() -> dict[str, dict]:
+def get_fallback_mentions(use_screener: bool = True) -> dict[str, dict]:
     """
-    Generate fallback stock data when Reddit API is unavailable.
-    Returns simulated mention data for popular stocks.
+    Generate stock data combining the static fallback list with
+    dynamically discovered opportunities from the stock screener.
     Includes user's watchlist stocks with priority.
+
+    Args:
+        use_screener: Whether to run the stock screener for new discoveries
     """
     import random
 
-    logger.info("Using fallback stock list (Reddit API not configured)")
+    logger.info("Building stock candidate list...")
 
     # Get watchlist stocks first (they get priority)
     watchlist_tickers = get_watchlist_tickers()
-
-    # Combine watchlist (priority) + fallback tickers, removing duplicates
-    all_tickers = watchlist_tickers + [t for t in FALLBACK_TICKERS if t not in watchlist_tickers]
 
     aggregated = {}
 
@@ -480,10 +480,10 @@ def get_fallback_mentions() -> dict[str, dict]:
             "is_watchlist": True,
         }
 
-    # Add fallback tickers
+    # Add fallback tickers (the core list)
     for ticker in FALLBACK_TICKERS:
         if ticker in aggregated:
-            continue  # Skip if already added from watchlist
+            continue
 
         mentions = random.randint(10, 150)
         sentiment = round(random.uniform(-0.3, 0.5), 3)
@@ -497,6 +497,32 @@ def get_fallback_mentions() -> dict[str, dict]:
             "avg_sentiment": sentiment,
         }
 
+    # Discover new stocks via screener
+    if use_screener:
+        try:
+            from app.services.stock_screener import discover_stocks
+            existing = list(aggregated.keys())
+            new_tickers = discover_stocks(existing_tickers=existing, max_new=150)
+            logger.info(f"Screener discovered {len(new_tickers)} new tickers")
+
+            for ticker in new_tickers:
+                if ticker in aggregated:
+                    continue
+                mentions = random.randint(5, 50)
+                sentiment = round(random.uniform(-0.1, 0.3), 3)
+
+                aggregated[ticker] = {
+                    "total_mentions": mentions,
+                    "subreddits": {
+                        "screener": {"count": mentions, "sentiment": sentiment},
+                    },
+                    "avg_sentiment": sentiment,
+                    "source": "screener",
+                }
+        except Exception as e:
+            logger.warning(f"Stock screener failed, using fallback list only: {e}")
+
+    logger.info(f"Total stock candidates: {len(aggregated)}")
     return aggregated
 
 
